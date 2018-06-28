@@ -1,15 +1,24 @@
 (ns sparql-endpoint.core
+  "Functions to support interacting with a SPARQL endpoint.
+  See also <https://www.w3.org/TR/sparql11-query/>.
+  "
   (:import 
    [org.apache.jena.datatypes.xsd XSDDatatype]
    [org.apache.jena.query QueryFactory]
    )
   (:require
+   [clj-http.client :as http]
    [clojure.string :as s]
    [clojure.data.json :as json]
    [taoensso.timbre :as log]
-   [clj-http.client :as http]))
+   ))
 
 
+(defn angle-brace-uri [s]
+  "returns <`s`> if it matches the scheme for a URI, else returns `s`."
+  (if (re-matches #"^(http:|file:).*" s)
+    (str "<" s ">")
+    s))
           
 (defn parse-prologue
   "Returns [<base>, <uri-to-qname>, <qname-to-uri>] parsed from the 
@@ -36,18 +45,21 @@
                  (fn? q-to-u)))]
    }
   (let [unquote (fn [s] (s/replace s #"[<>]" ""))
-        angle-quote (fn [s] (if s (str "<" s ">")))
         q (. QueryFactory create query)
         p (.getPrologue q)
-        base (angle-quote (.getBaseURI p))
+        base (angle-brace-uri (.getBaseURI p))
         ]
     
     [base
      (fn[u] (let [qname (.shortForm p (unquote u))]
               (if (not= qname u)
                 qname
-                (angle-quote u))))
-     (fn[u] (or (angle-quote (.expandPrefixedName p u)) u))]))
+                (angle-brace-uri u))))
+     (fn[u] (let [uri (or (.expandPrefixedName p u)
+                          u)
+                  ]
+              (angle-brace-uri uri)))
+     ]))
         
 
 (defn sparql-update
@@ -58,8 +70,9 @@
   <update> is a SPARQL update expression
   <http-req> := {?param...}
   <param> is anything described in <https://github.com/dakrone/clj-http>
-    Though :form-params and :accept  will be overridden.
+    Though :form-params will be overridden.
     This may be used for authentication parameters for example.
+    Default parameters are {:cookie-policy :standard, :accept text/plain}
   "
   ([endpoint update]
    (sparql-update endpoint update {}))
@@ -71,10 +84,11 @@
           (map? http-req)
           ]
     }
-   (let [response (http/post endpoint (merge (merge {:cookie-policy :standard}
+   (let [response (http/post endpoint (merge (merge {:cookie-policy :standard
+                                                     :accept "text/plain"
+                                                     }
                                                     http-req)
                                              {:form-params {:update update}
-                                              :accept "text/plain"
                                               }))
 
          ]
@@ -88,41 +102,41 @@
 
 (defn sparql-query
   "
-  Returns output of (`render-results` <response-body>) for SPARQL `query`
+  Returns output of <response-body> for SPARQL `query`
     posed to `endpoint`, possibly informed by `http-req`
   Where
   <response-body> is the body of the response to <query>, posed to <endpoint>
     via an HTTP GET call which may be informed by <param>s in <http-req>
-  <render-results> := fn(<query response>) -> e.g. true/false 
-  (for an ASK query) or a map for a SELECT query, default is `identity`
-  <http-req> := {?param...}, default is {}
-  <param> is anything described in <https://github.com/dakrone/clj-http>
+  <http-req> := {<param> <spec>,...}, default is {}
+  <param> is anything described in <`https://github.com/dakrone/clj-http`>
     typically :debug or authentication parameters
-    Any :form-params will be overridden.
+    :query-params will be overridden.
+    Default params:  {:cookie-policy :standard}
   "
   ([endpoint query]
-   (sparql-query endpoint query {} identity))
+   (sparql-query endpoint query {}))
   
-  ([endpoint query http-req render-results]
+  ([endpoint query http-req]
    {
     :pre [(re-find #"http" endpoint)
           (re-find #"(?i)ASK|SELECT|CONSTRUCT" query)
-          (fn? render-results)
           ]
     }
-   (let [default-http-req {:cookie-policy :standard}
-         response (http/get endpoint 
-                            (merge (merge default-http-req
+   (let [response (http/get endpoint 
+                            (merge (merge {:cookie-policy :standard}
                                           http-req)
                                    {:query-params {:query query}
                                     }))
          ]
      (case (:status response)
-       200  (render-results (:body response))
+       200  (:body response)
        400 (log/info (str "Code 400:" response))
        :default (throw (Error. (str "No handler for status " 
                                     (:status response))))))))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Support for SELECT queries
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (def type-mapper
   "Maps datatype names to xsd datatypes"
@@ -130,11 +144,13 @@
 
 (defn parse-xsd-value 
   "
-  Returns <value> for `literal`
+  Returns <translated-value> for `literal`
   Where
-  <literal> := {?value ?datatype} is a literal value typically from a
-    binding acquired from a select query.
-  <value> is an instance of the xsd datatype specified for <literal>
+  <literal> is a sparql binding value-map s.t.
+    {type literal, datatype <datatype>, value <value> ...}
+  <translated-value> is an instance of the xsd datatype associated with
+    <datatype> specified for <value>, or <value> if no translation can be
+    found.
   <datatype> is a string indicating the datatype associated with <value>,
     which may be an xsd datatype
   "
@@ -154,128 +170,126 @@
       (get literal "value"))))
 
 
-(def default-select-binding-handlers
-  "A map with keys :uri :lang :datatype, each mapping to <binding-fn>
+
+(def default-translators
+  "A map with keys :uri :lang :datatype, each mapping to <translator>
   Where
-  <binding-fn> := (fn[binding]) -> value
-  <binding> :={'value' <value>
-               'type' <type>
-               maybe 'xml:lang' <lang>
-               maybe 'datatype' <datatype>}
-  This is the default second arg to `standard-render-var-binding`
+  <translator> := (fn[var-value]) -> <translated value>
+  <var-value> :={'value' <value>
+                 'type' 'uri' | 'literal'
+                 ...maybe...
+                 'xml:lang' <lang> (if literal)
+                 'datatype' <datatype> (if literal)
+                }
   "
-  {:uri (fn[b] (str "<" (get b "value") ">"))
+  {:uri (fn[b] (angle-brace-uri (get b "value")))
    :lang (fn[b] (get b "value"))
    :datatype parse-xsd-value
    })
 
 
-
-(defn standard-render-var-binding
-  "
-  Returns {<var-keyword> <maybe-parsed-value>, ...} for each <var> in `binding`, with each [<var> <var-value>] pair interpreted by `binding-handlers`, which defaults to `default-select-binding-handlers`
+(defn simplify
+  "Returns {<var-keyword> <translated-value>, ...} for each <var> in `var-map`,
+    translated according to `translators` (default `default-translators`)
   Where
-  <binding> := {<var> {'type' <type>,
-                       'value' <uri>|<literal>}
-                ...}
-    , typically returned by a SELECT query
-  <var-keyword> is a keyword derived from <var>
-  <maybe-parsed-value> is a translation of <value> appropriate for <type> and
-    <datatype>, an instance of an appropriate class.
-  <type> is one of #{'literal' 'uri'}
-  <uri> is a valid URI string
-  <literal> :=   {'
-                  'value' <value>
-                   maybe  'datatype' <datatype>
-                   maybe  'xml:lang' <language-tag>
-                   }, ...}}
-  <value> is a string
-  <datatype> may be and xsd value
-  <language-tag> is e.g. 'en' for English.
+  <var-map> := {<var> <var-value>...}
+  <var> is a string typically corresponding to a variable in a SELECT query
+  <var-value> is a map with keys in the set #{type value xml:lang datatype},
+    per the SPARQL 1.1 specification for SELECT queries.
+  <var-keyword> is keyword corresponding to <var>
+  <translated-value> is <value> from <var-value>, translated using <translators>
+  <translators> is a map with keys in #{:uri :lang :datatype}, each of which
+    maps to a (fn[var-value])-> <translated-value>, depending on whether
+    <var-value> represents a URI, a literal with a language tag, or a literal
+    with a specified datatype. Default is simply to render the 'value' field.
+  Note: see also <https://www.w3.org/TR/sparql11-results-json/>
   "
-  ([binding]
-   (standard-render-var-binding binding
-                               default-select-binding-handlers))
-   
-  ([[var var-value] binding-handlers]
-   (let [render-value (cond
-                        (= (get var-value "type") "uri")
-                        (:uri binding-handlers)
-                        
-                        (and (= (get var-value "type") "literal")
-                             (contains? var-value "xml:lang"))
-                        (:lang binding-handlers)
-                        
-                        (and (= (get var-value "type") "literal")
-                             (contains? var-value "datatype"))
-                        (:datatype binding-handlers)
-                        :default
-                        (fn[b] (get b "value")))
+  ([var-map]
+   (simplify var-map default-translators)
+   )
+  ([var-map translators]
+   (let [render-value (fn[var-value]
+                        (let [translator
+                              (cond
+                                (= (get var-value "type") "uri")
+                                (:uri translators)
+                                (and (= (get var-value "type") "literal")
+                                     (contains? var-value "xml:lang"))
+                                (:lang translators)
+                                (and (= (get var-value "type") "literal")
+                                     (contains? var-value "datatype"))
+                                (:datatype translators)
+                                :default
+                                (fn[b] (get b "value")))]
+                          (translator var-value)))
          
+         render-binding (fn [[var var-value]]
+                          [(keyword var)
+                           (render-value var-value)])
          ]
- 
-     (assert (fn? render-value))
-     [(keyword var)
-      (render-value var-value)])))
 
-(defn prologue-informed-var-binding-fn[query]
+     (into {} (map  render-binding var-map)))))
+
+
+(defn simplifier-for-prologue
+  "Returns a function (fn[<var-map>] -> {<var-keyword> <translated-value>, ...}
+    for each <var> in `var-map`, transating URIs into qnames derived from the
+    prologue to `query`, and otherwise using `translators` (default
+    `default-translators`)"
+  ([query]
+   (simplifier-for-prologue query default-translators)
+   )
+  ([query translators]
   (let [[_ q-namer _] (parse-prologue query)]
-    (fn[var-binding] (standard-render-var-binding
-                      var-binding
-                      (merge default-select-binding-handlers
-                             {:uri (fn[b] (q-namer (get b "value"))) })))))
+    (fn[var-map]
+      (simplify
+       var-map
+       (merge translators
+              {:uri (fn[var-value]
+                      (q-namer (get var-value "value")))
+               }))))))
 
 (defn sparql-select
   "
-  Returns <bindings> for `query` posed to `endpoint`, handling
-    literals according to `handle-literal`
+  Returns <bindings> for `query` posed to `endpoint`, using an HTTP call
+    informed by `http-req`
   Where
   <query> := a SPARQL SELECT query
   <endpoint> the URL string of a SPARQL endpoint
-  <handle-var-binding> := fn[<variable> <value>] -> <parsed-value>
-    default is `maybe-parse-xsd`
   <bindings> := [<binding> , ...]
-  <binding> := {<variable> <value>, ...}
-  <variable> is a variable specified in <query>
-  <value> := {?type ?value}
-  <literal-value> := {'type' 'literal', ?datatype ?value}
-  <parsed-value> is e.g. an int, float, etc. as is typically the case
-    with standard xsd classes, or may be a custom value defined
-    by the calling function.
+  <binding> := {<var> <var-value>, ...}
+  <var> is a variable specified in <query>
+  <var-value> := <uri-value> or <literal-value>
+  <uri-value> := {type uri, value <uri>}
+  <literal-value> :=  {type literal,
+                       value <value>,
+                       maybe datatype <datatype>,
+                       maybe xml:lang <lang>
+                      }
+  Note: see also `https://www.w3.org/TR/sparql11-results-json/`
   "
   ([endpoint query]
-   (sparql-select endpoint query {} standard-render-var-binding))
+   (sparql-select endpoint query {}))
   
-  ([endpoint query http-req render-var-binding]
+  ([endpoint query http-req]
    {
     :pre [(re-find #"http"  endpoint)
           (string? query)
           (re-find #"(?i)SELECT" query)
-          ;; (fn? render-var-binding)
           ]
     }
-   (letfn [(render-select-results [http-response-body]
-             ;; Returns [{<key> <value>, ...}, ...]
-             (log/debug (str "http-response-body:"  http-response-body))
-             (letfn [(render-binding [binding] ;; (fn [binding] 
-                       (into {} 
-                             (map render-var-binding
-                                  binding)))
-                     ]
-               (vec
-                (map render-binding
-                     (-> http-response-body
-                         (json/read-str)
-                         (get "results")
-                         (get "bindings"))))))]
-           
      (log/debug query)
-     (sparql-query endpoint
-                   query
-                   (merge http-req
-                          {:accept "application/sparql-results+json"})
-                   render-select-results))))
+     (-> (sparql-query endpoint
+                       query
+                       (merge http-req
+                              {:accept "application/sparql-results+json"}))
+         (json/read-str)
+         (get "results")
+         (get "bindings"))))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ASK
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn sparql-ask
   "
@@ -284,9 +298,9 @@
   Where
   <query> is a SPARQL ASK query
   <endpoint> is a SPARQL endpoint
-  <http-req> := {?param...}
+  <http-req> := {<param> <spec>, ...}
   <param> is anything described in <https://github.com/dakrone/clj-http>
-  Though #{:form-params :accept :saved-request?} will be overridden.
+  Though :form-params will be overridden.
 
   "
   ([endpoint query]
@@ -299,27 +313,27 @@
           ]
     :post [(contains? #{true false} %)]
     }
-   (letfn [(render-ask-results [http-response-body]
-             (log/debug (str "body:"  http-response-body))
-             (-> http-response-body
-                 (json/read-str)                 
-                 (get "boolean")))
-           ]
-     (sparql-query endpoint
-                   query
-                   (merge http-req
-                          {:accept "application/sparql-results+json"})
-                   render-ask-results))))
-  
+   (-> (sparql-query endpoint
+                     query
+                     (merge http-req
+                            {:accept "application/sparql-results+json"}))
+       (json/read-str)                 
+       (get "boolean"))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; CONSTRUCT
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (defn sparql-construct
   "
-  Returns <expression> for `query` posed to `endpoint`, possibly informed by `http-req`
+  Returns <expression> for `query` posed to `endpoint`, possibly informed
+    by `http-req`
   Where
   <query> := a SPARQL CONSTRUCT query
   <endpoint> the URL string of a SPARQL endpoint
   <http-req> := {?param...}
-  <param> is anything described in <https://github.com/dakrone/clj-http>
-    Though :form-params and :save-request? will be overridden.
+  <param> is anything described in <`https://github.com/dakrone/clj-http`>
+    Though :form-params will be overridden.
     The default :accept parameter is text/turtle.
   "
   ([endpoint query]
@@ -336,8 +350,7 @@
    (sparql-query endpoint
                  query
                  (merge {:accept "text/turtle"}
-                        http-req)
-                 identity)))
+                        http-req))))
 
 
 

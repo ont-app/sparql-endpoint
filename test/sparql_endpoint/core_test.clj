@@ -83,3 +83,76 @@ the prolog of the query being parsed
       (is (= (q-to-u  "blah") "blah"))
       (is (= (u-to-q  "blah") "blah")))))
 
+(deftest simplify-test
+  (testing "`simplify` when mapped over the output of `sparql-select` should return simplified maps of the results"
+    (let [uri-query "
+# What's the schema.org equivlent of Q5?
+Select ?schemaOrgEquivalent
+Where 
+{
+  wd:Q5 wdt:P1709 ?schemaOrgEquivalent. 
+  Filter Regex(Str(?schemaOrgEquivalent), \"schema.org\")
+} "
+
+          label-query "
+# What's the English word for Q5?
+Select ?label 
+Where 
+{
+  wd:Q5 rdfs:label ?label.
+  Filter (Lang(?label) = \"en\")
+} "
+          datatype-query "
+# What is Obama's date of birth?
+Select ?dob
+Where 
+{
+  wd:Q76 wdt:P569 ?dob.
+} "
+
+          ]
+      ;; Labels by default just return the string value...
+      (is (= (map sparql/simplify
+                  (sparql/sparql-select wikidata-endpoint (prefix label-query)))
+             '({:label "human"})))
+
+      ;; URIs are angle-braced by default...
+      (is (= (map sparql/simplify
+                  (sparql/sparql-select wikidata-endpoint (prefix uri-query)))
+             '({:schemaOrgEquivalent "<http://schema.org/Person>"})))
+
+      ;; xsd values should be parsed into actual Java objects...
+      (is (= (let [bindings (vec (map sparql/simplify
+                                      (sparql/sparql-select
+                                       wikidata-endpoint
+                                       (prefix datatype-query))))
+                   dob (:dob (nth bindings 0))
+                   ;; <dob> is an XSDDateTime
+                   ]
+               (.getYears dob)) 
+             1961))
+      ;; ... See https://jena.apache.org/documentation/javadoc/jena/org/apache/jena/datatypes/xsd/XSDDateTime.html
+
+      )))
+
+(deftest simplifier-for-prologue-test
+  (testing "The function returned by `simplifier-for-prologue` when mapped over the output of `sparql-select` should render URIs for which there is a prefix declaration as qnames"
+    (let [query "
+# All the Q-numbers called 'human' in English
+
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX wd: <http://www.wikidata.org/entity/>
+Select ?q 
+Where 
+{
+  ?q rdfs:label \"human\"@en
+}"
+          ]
+      (is (= (set (map (sparql/simplifier-for-prologue query)
+                       (sparql/sparql-select
+                                       wikidata-endpoint
+                                       query)))
+             #{{:q "wd:Q26190966"}
+               {:q "wd:Q5"}
+               {:q "wd:Q823310"}
+               {:q "wd:Q20094897"}})))))
