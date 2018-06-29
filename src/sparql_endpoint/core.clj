@@ -4,7 +4,10 @@
   "
   (:import 
    [org.apache.jena.datatypes.xsd XSDDatatype]
-   [org.apache.jena.query QueryFactory]
+   [org.apache.jena.datatypes TypeMapper]
+   [org.apache.jena.sparql.core Prologue]
+   [org.apache.jena.query QueryFactory Query]
+   [org.apache.jena.iri IRI IRIFactory]
    )
   (:require
    [clj-http.client :as http]
@@ -13,13 +16,33 @@
    [taoensso.timbre :as log]
    ))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; URI/IRI utilities
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn angle-brace-uri [s]
+(defn angle-bracket-uri 
   "returns <`s`> if it matches the scheme for a URI, else returns `s`."
-  (if (re-matches #"^(http:|file:).*" s)
-    (str "<" s ">")
-    s))
-          
+  ([s]
+   (if (re-matches #"^(http:|file:).*" s)
+     (str "<" s ">")
+     s)))
+
+(def ^IRIFactory the-iri-factory (. IRIFactory iriImplementation))
+
+(defn iri-for
+  "Returns an instance of `org.apache.jena.iri.impl.IRIImpl` for `uri`
+Where
+<uri> a string, typically the 'value' value of a SELECT binding whose 'type' 
+  value is 'uri'
+NOTE: this does not seem to be a very mature class in Jena, and you may need 
+  to poke around a bit to find methods that don't trigger NYI errors"
+  ([^String uri]
+   (.create the-iri-factory uri)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Query parsing
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (defn parse-prologue
   "Returns [<base>, <uri-to-qname>, <qname-to-uri>] parsed from the 
     <prologue> to `query`
@@ -27,7 +50,7 @@
   <base> is a URI string for the base of <query>
   <uri-to-qname> := fn[<uri>] -> <quickname>, or <uri> if there was no matching
     prefix in <prolog>
-  <qname-to-uri> := fn[<qname>] -> <uri> (angle-bracketed)  or <qname> if there
+  <qname-to-uri> := fn[<qname>] -> <uri>   or <qname> if there
     was no matching prefix in <prologue>
   <uri> is typically a URI with a prefix defined in the <prologue>, but
     may be any string
@@ -36,7 +59,7 @@
   <prologue> is the prologue parsed from <query>, for which see
     spex at <https://www.w3.org/TR/sparql11-query/>.
   "
-  [query]
+  [^String query]
   {
    :pre [(string? query)]
    :post [(let [[base, u-to-q, q-to-u] %]
@@ -45,26 +68,27 @@
                  (fn? q-to-u)))]
    }
   (let [unquote (fn [s] (s/replace s #"[<>]" ""))
-        q (. QueryFactory create query)
-        p (.getPrologue q)
-        base (angle-brace-uri (.getBaseURI p))
+        q ^Query(. QueryFactory create query)
+        p ^Prologue(.getPrologue q)
+        base (.getBaseURI p)
         ]
-    
+    ;; return [<base> <uri to quickname> <quickname to uri>]
     [base
      (fn[u] (let [qname (.shortForm p (unquote u))]
               (if (not= qname u)
                 qname
-                (angle-brace-uri u))))
-     (fn[u] (let [uri (or (.expandPrefixedName p u)
-                          u)
-                  ]
-              (angle-brace-uri uri)))
+                u)))
+     (fn[u] (or (.expandPrefixedName p u) u))
      ]))
         
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Basic queries
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn sparql-update
   "Side Effect: Modifies the contents of `endpoint` per the update query 
   `update`, possibly informed by http parameters  `http-req'
+  Returns the string returned by `endpoint` if successful.
   Where
   <endpoint> is a SPARQL update endpoint
   <update> is a SPARQL update expression
@@ -92,12 +116,14 @@
                                               }))
 
          ]
+     (if (<= 200 (:status response) 299)
+       (:body response)
+       ;; this is actually moot. clj-http will raise an error
+       (throw (Error. (str "HTTP Error "
+                           (:status response)
+                           (:reason-phrase response)
+                           (:body response))))))))
 
-     (case (:status response)
-       200 (:body response)
-       204 (log/info (str "Code 204:" response))
-       :default (throw (Error. (str "No handler for status " 
-                                    (:status response))))))))
 
 
 (defn sparql-query
@@ -111,7 +137,7 @@
   <param> is anything described in <`https://github.com/dakrone/clj-http`>
     typically :debug or authentication parameters
     :query-params will be overridden.
-    Default params:  {:cookie-policy :standard}
+    {:cookie-policy :standard} will be asserted by default
   "
   ([endpoint query]
    (sparql-query endpoint query {}))
@@ -128,19 +154,22 @@
                                    {:query-params {:query query}
                                     }))
          ]
-     (case (:status response)
-       200  (:body response)
-       400 (log/info (str "Code 400:" response))
-       :default (throw (Error. (str "No handler for status " 
-                                    (:status response))))))))
+     (if (<= 200 (:status response) 299)
+       (:body response)
+       ;; this is actually moot. clj-http will raise an error
+       (throw (Error. (str "HTTP Error "
+                           (:status response)
+                           (:reason-phrase response)
+                           (:body response))))))))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Support for SELECT queries
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(def type-mapper
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; SELECT queries, and supporting functions
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(def ^TypeMapper type-mapper
   "Maps datatype names to xsd datatypes"
-  (. org.apache.jena.datatypes.TypeMapper getInstance))
+  (. TypeMapper getInstance))
 
 (defn parse-xsd-value 
   "
@@ -160,6 +189,7 @@
                              s
                              #"xsd:"
                              "http://www.w3.org/2001/XMLSchema#"))
+        ^XSDDatatype
         type (.getTypeByName
               type-mapper
               (expand-xsd-prefix
@@ -182,7 +212,7 @@
                  'datatype' <datatype> (if literal)
                 }
   "
-  {:uri (fn[b] (angle-brace-uri (get b "value")))
+  {:uri (fn[b] (get b "value"))
    :lang (fn[b] (get b "value"))
    :datatype parse-xsd-value
    })

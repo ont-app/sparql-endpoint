@@ -20,34 +20,32 @@
   PREFIX eg: <http://example.com/>
 ")
 
-(defn prefix [q]
+(defn prefix 
   "Returns `q` prepended by `prefixes`"
-  (str prefixes q))
+  ([q]
+   (str prefixes q)))
 
 
 (deftest ask-test
   (testing "An all-inclusive SPARQL ASK query posed to wikidata should
   return _true_"
     (let [query "Ask Where {?s ?p ?o}"
-          endpoint wikidata-endpoint
           ]
 
-    (is (= (sparql/sparql-ask endpoint query)
+    (is (= (sparql/sparql-ask wikidata-endpoint query)
            true)))))
 
 (deftest bad-query-test
   (testing "An invalid SPARQL query posed to wikidata should raise an error"
     (let [query "Go ask your mother"
-          endpoint wikidata-endpoint
           ]
-    (is (thrown? Exception (sparql/sparql-ask endpoint query))))))
+      (is (thrown? Exception (sparql/sparql-ask wikidata-endpoint query))))))
 
 (deftest select-test
   (testing "A SPARQL SELECT query for 'human' posed to wikidata should
   return wd:Q5 amongst its answers."
     (let [query (prefix "Select ?q Where {?q rdfs:label \"human\"@en}")
-          endpoint wikidata-endpoint
-          result (sparql/sparql-select endpoint  query)
+          result (sparql/sparql-select wikidata-endpoint  query)
           ]
       (is (= (some #(= % "http://www.wikidata.org/entity/Q5")
                    (map (fn [binding] (get-in binding ["q" "value"]))
@@ -59,8 +57,7 @@
   (testing "A SPARQL CONSTRUCT query for 'human' posed to wikidata should return a string of turtle with 'Q5' as a substring"
     (let [query (prefix
                  "Construct {?q a eg:Human} Where {?q rdfs:label \"human\"@en}")
-          endpoint wikidata-endpoint
-          result (sparql/sparql-construct endpoint  query)
+          result (sparql/sparql-construct wikidata-endpoint  query)
           ]
       (is (= (re-find #"Q5" result)
              "Q5")))))
@@ -76,10 +73,10 @@ the prolog of the query being parsed
                  Select * where {?s ?p ?o.}"
           [base, u-to-q, q-to-u] (sparql/parse-prologue query)
           ]
-      (is (= base "<http://example.org/>"))
+      (is (= base "http://example.org/"))
       (is (= (u-to-q "<http://example.com/blah>") "eg:blah"))
       (is (= (u-to-q "http://example.com/blah") "eg:blah"))
-      (is (= (q-to-u  "eg:blah") "<http://example.com/blah>"))
+      (is (= (q-to-u  "eg:blah") "http://example.com/blah"))
       (is (= (q-to-u  "blah") "blah"))
       (is (= (u-to-q  "blah") "blah")))))
 
@@ -119,7 +116,7 @@ Where
       ;; URIs are angle-braced by default...
       (is (= (map sparql/simplify
                   (sparql/sparql-select wikidata-endpoint (prefix uri-query)))
-             '({:schemaOrgEquivalent "<http://schema.org/Person>"})))
+             '({:schemaOrgEquivalent "http://schema.org/Person"})))
 
       ;; xsd values should be parsed into actual Java objects...
       (is (= (let [bindings (vec (map sparql/simplify
@@ -136,7 +133,7 @@ Where
       )))
 
 (deftest simplifier-for-prologue-test
-  (testing "The function returned by `simplifier-for-prologue` when mapped over the output of `sparql-select` should render URIs for which there is a prefix declaration as qnames"
+  (testing "The function returned by `simplifier-for-prologue` when mapped over the output of `sparql-select` should render a qnames URIs for which there is a prefix declaration."
     (let [query "
 # All the Q-numbers called 'human' in English
 
@@ -148,11 +145,9 @@ Where
   ?q rdfs:label \"human\"@en
 }"
           ]
-      (is (= (set (map (sparql/simplifier-for-prologue query)
-                       (sparql/sparql-select
-                                       wikidata-endpoint
-                                       query)))
-             #{{:q "wd:Q26190966"}
-               {:q "wd:Q5"}
-               {:q "wd:Q823310"}
-               {:q "wd:Q20094897"}})))))
+      (is (contains? (set (map (sparql/simplifier-for-prologue query)
+                               (sparql/sparql-select
+                                  wikidata-endpoint
+                                  query)))
+                     {:q "wd:Q5"})))))
+
