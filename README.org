@@ -12,7 +12,7 @@ endpoints in clojure.
 With Leiningen:
 
 #+BEGIN_SRC clojure
-[ontapp/sparql-endpoint "0.1.0"]
+[ont-app/sparql-endpoint "0.1.0"]
 #+END_SRC
 
 * Functions

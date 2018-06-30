@@ -1,6 +1,6 @@
-(defproject ontapp/sparql-endpoint "0.1.0-SNAPSHOT"
-  :description "Utilities for interacting with a SPARQL endpoint"
-  :url "http://example.com/FIXME"
+(defproject ont-app/sparql-endpoint "0.1.0-SNAPSHOT"
+  :description "Utilities for interfacing with a sparql endpoint in clojure"
+  :url "https://github.com/ericdscott/sparql-endpoint/"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :repl-options {:init-ns sparql-endpoint.core}
