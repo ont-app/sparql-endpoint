@@ -23,6 +23,9 @@
 (defn angle-bracket-uri 
   "returns <`s`> if it matches the scheme for a URI, else returns `s`."
   ([s]
+   {:pre [(string? ?s)]
+    :post [#(string? %s)]
+    }
    (if (re-matches #"^(http:|file:).*" s)
      (str "<" s ">")
      s)))
