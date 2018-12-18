@@ -9,11 +9,8 @@ endpoints in clojure.
 * Installation
 =sparql-endpoint= is available as a Maven artifact from clojars. 
 
-With Leiningen:
-
-#+BEGIN_SRC clojure
 [![Clojars Project](https://img.shields.io/clojars/v/ont-app/sparql-endpoint.svg)](https://clojars.org/ont-app/sparql-endpoint)
-#+END_SRC
+
 
 * Functions
 ** Functions that interact with SPARQL endpoints
