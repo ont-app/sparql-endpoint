@@ -116,7 +116,7 @@ Where
       ;; URIs are angle-braced by default...
       (is (= (map sparql/simplify
                   (sparql/sparql-select wikidata-endpoint (prefix uri-query)))
-             '({:schemaOrgEquivalent "http://schema.org/Person"})))
+             '({:schemaOrgEquivalent "https://schema.org/Person"})))
 
       ;; xsd values should be parsed into actual Java objects...
       (is (= (let [bindings (vec (map sparql/simplify

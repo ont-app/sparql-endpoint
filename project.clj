@@ -1,4 +1,4 @@
-(defproject ont-app/sparql-endpoint "0.1.0-SNAPSHOT"
+(defproject ont-app/sparql-endpoint "0.1.1-SNAPSHOT"
   :description "Utilities for interfacing with a sparql endpoint in clojure"
   :url "https://github.com/ont-app/sparql-endpoint/"
   :license {:name "Eclipse Public License"

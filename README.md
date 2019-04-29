@@ -14,6 +14,14 @@ endpoints in clojure.
 [![Clojars Project](https://img.shields.io/clojars/v/ont-app/sparql-endpoint.svg)](https://clojars.org/ont-app/sparql-endpoint)
 
 
+Require thus:
+```
+(ns my.namespace
+  (:require
+    [sparql-endpoint.core :as endpoint]
+    ))
+```
+
 # Functions
 
 
@@ -21,33 +29,33 @@ endpoints in clojure.
 
 These involve POSTs to an [update endpoint](https://www.w3.org/TR/sparql11-update/) and GETs to a [query
 enpoint](https://www.w3.org/TR/sparql11-query/). There are special functions for ASK, SELECT and CONSTRUCT
-queries. Each of these take mandatory <span class="underline">**endpoint**</span> and <span class="underline">**query**</span>
-arguments, and an optional <span class="underline">**http-req**</span> argument.
+queries. Each of these take mandatory `endpoint` and `query`
+arguments, and an optional `http-req` argument.
 
 
 
-### Mandatory arguments: <span class="underline">endpoint</span> and <span class="underline">query</span>
+### Mandatory arguments: `endpoint` and `query`
 
 All of the basic query and update functions take two mandatory arguments: 
 
-<span class="underline">**endpoint**</span> is the URL of a SPARQL endpoint
+`endpoint` is the URL of a SPARQL endpoint
 
-<span class="underline">**query**</span> is a string in an appropriate format for ASK, SELECT,
+`query` is a string in an appropriate format for ASK, SELECT,
 CONSTRUCT, or one of the UPDATE operations.
 
 
 
-### Optional argument: <span class="underline">http-req</span>
+### Optional argument: `http-req`
 
 HTTP calls are done through [clj-http](https://github.com/dakrone/clj-http). There is a third optional
-<span class="underline">**http-req**</span> argument which may include additional HTTP request
+`http-req` argument which may include additional HTTP request
 parameters.
 
-For example if <span class="underline">endpoint</span> requires authentication, you may specify
-<span class="underline">{:basic-auth "myUserName:myPassword"}</span>
+For example if `endpoint`requires authentication, you may specify
+`{:basic-auth "myUserName:myPassword"}`
 
-{:cookie-policy :standard} is asserted by default, but this can
-be overridden. The <span class="underline">:query-params</span> parameter is reserved, as it is
+`{:cookie-policy :standard`} is asserted by default, but this can
+be overridden. The `:query-params` parameter is reserved, as it is
 needed to specify the query to the endpoint.
 
 
@@ -63,12 +71,12 @@ This function takes an endpoint and a SPARQL ASK query and returns a boolean:
 
 ### sparql-select
 
-This function takes as its <span class="underline">query</span> parameter a SPARQL SELECT query:
+This function takes as its `query` parameter a SPARQL SELECT query:
 
     (use 'sparql-endpoint.core)
     (let [query "
     # What is the English name for Q5?
-    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+    PREFIX rdfs: `
     PREFIX wd: <http://www.wikidata.org/entity/>
     SELECT ?enLabel
     WHERE
@@ -83,7 +91,7 @@ This function takes as its <span class="underline">query</span> parameter a SPAR
     ;; => [{"enLabel" {"xml:lang" "en", "type" "literal", "value" "human"}}]
 
 The bindings returned are direct translations of the JSON returned by
-the endpoint. These can be mapped by more expressive <span class="underline">**simplifiers**</span>,
+the endpoint. These can be mapped by more expressive `simplifiers`,
 described below.
 
 
@@ -133,7 +141,7 @@ response.
 
 ## Simplifiers
 
-By default the output of <span class="underline">**sparql-select**</span> is parsed JSON of raw
+By default the output of `sparql-select` is parsed JSON of raw
 output of the endpoint, using [the specification described by W3C](https://www.w3.org/TR/sparql11-results-json/). 
 
     {'value' <value>
@@ -144,13 +152,13 @@ output of the endpoint, using [the specification described by W3C](https://www.w
     }
 
 It is usually convenient to transform these bindings into simpler
-representations. Hence the functions <span class="underline">**simplify**</span> and
-<span class="underline">**simplifier-for-prologue**</span>, described below.
-
+representations. Hence the functions `simplify` and
+`simplifier-for-prologue`, described below.
 
 ### simplify
 
-The function <span class="underline">simplify</span> will take a result binding and return a simplified map:
+The function `simplify` will take a result binding and return a simplified map `{<var> <value>...}`. This would typically be done in the context of a map function:
+
 
     (use 'sparql-endpoint.core)
     (let [query "
@@ -168,57 +176,20 @@ The function <span class="underline">simplify</span> will take a result binding 
     ;; => ({:enLabel "human"})
     ;; Compare to [{"enLabel" {"xml:lang" "en", "type" "literal", "value" "human"}}]
 
-1.  Optional <span class="underline">**translators**</span> argument
 
-    <span class="underline">simplify</span> takes an optional argument <span class="underline">**translators**</span>, a map with three
-    keys: <span class="underline">**:uri**</span>, <span class="underline">**:lang**</span> and <span class="underline">**:datatype**</span>. Default values for this map are
-    defined as the value **default-translators**.
+####  Optional `translators` argument
+
+`simplify` takes an optional argument `translators`, a map with three
+keys: `:uri`, `:lang` and `:datatype`. Default values for this map are
+defined as the value `default-translators`.
     
-    <table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+| key | description | default  |
+| --- |--- | ---|
+| `:uri` | value is a uri| return raw value (typically "http://...") |
+| `:lang` | value is literal and has a language tag, e.g. "en" | return raw value (without the language tag)|
+| `:datatype` | value is literal and has an assigned datatype, g.g. "xsd:int" | parse XSD values, otherwise return raw value |
     
-    
-    <colgroup>
-    <col  class="org-left" />
-    
-    <col  class="org-left" />
-    
-    <col  class="org-left" />
-    </colgroup>
-    <thead>
-    <tr>
-    <th scope="col" class="org-left">key</th>
-    <th scope="col" class="org-left">description</th>
-    <th scope="col" class="org-left">default</th>
-    </tr>
-    </thead>
-    
-    <tbody>
-    <tr>
-    <td class="org-left">:uri</td>
-    <td class="org-left">value is a URI</td>
-    <td class="org-left">return raw value</td>
-    </tr>
-    
-    
-    <tr>
-    <td class="org-left">:lang</td>
-    <td class="org-left">value is literal and has a language tag, e.g. "en"</td>
-    <td class="org-left">return raw value</td>
-    </tr>
-    
-    
-    <tr>
-    <td class="org-left">:datatype</td>
-    <td class="org-left">value is literal and has an assigned datatype, e.g. "xsd:int"</td>
-    <td class="org-left">parse XSD values, otherwise return raw value</td>
-    </tr>
-    </tbody>
-    </table>
-    
-    By default the Jena library is referenced to translate [xsd datatypes](https://www.w3.org/TR/xmlschema11-2/)
-    into instances of an appropriate class. In the following example,
-    Obama's date of birth is translated to an instance of Jena's
-    **XSDDateTime**, which has a <span class="underline">**getYears**</span> method&#x2026;
+By default the Jena library is referenced to translate [xsd datatypes](https://www.w3.org/TR/xmlschema11-2/) into instances of an appropriate class. In the following example, Obama's date of birth is translated to an instance of Jena's `XSDDateTime`, which has a `getYears` method:
     
         (use 'sparql-endpoint.core)
         (let [query "
@@ -236,8 +207,7 @@ The function <span class="underline">simplify</span> will take a result binding 
                                  0))))
         ;; -> 1961
     
-    Any of these values can be overridden with custom functions by
-    merging **default-translators** with an overriding map.
+Any of these values can be overridden with custom functions by merging `default-translators` with an overriding map.
 
 
 ### simplifier-for-prologue
@@ -287,42 +257,15 @@ Compare this&#x2026;
 ## parse-prologue
 
 This function takes a SPARQL query and returns a vector with three values:
-<span class="underline">**base**</span>, <span class="underline">**uri-to-quickname**</span>, <span class="underline">**quickname-to-uri**</span>. 
-
-<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+`base`, `uri-to-quickname`, `quickname-to-uri`. 
 
 
-<colgroup>
-<col  class="org-left" />
+| name | description |
+| --- | --- |
+| base | The base URI used to resolve relative URIs |
+| uri-to-quickname | fn[uri] -> corresponding quickname |
+| quickname-to-uri | fn[quickname] -> corresponding full URI |
 
-<col  class="org-left" />
-</colgroup>
-<thead>
-<tr>
-<th scope="col" class="org-left">name</th>
-<th scope="col" class="org-left">description</th>
-</tr>
-</thead>
-
-<tbody>
-<tr>
-<td class="org-left">base</td>
-<td class="org-left">The base URI used to resolve relative URIs</td>
-</tr>
-
-
-<tr>
-<td class="org-left">uri-to-quickname</td>
-<td class="org-left">fn[uri] -> corresponding quickname</td>
-</tr>
-
-
-<tr>
-<td class="org-left">quickname-to-uri</td>
-<td class="org-left">fn[quickname] -> corresponding full URI</td>
-</tr>
-</tbody>
-</table>
 
 Given a string for which there is no prefix declaration in the query,
 these last two functions will return their argument unchanged.

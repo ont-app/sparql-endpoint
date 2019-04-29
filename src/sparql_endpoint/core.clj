@@ -23,10 +23,10 @@
 (defn angle-bracket-uri 
   "returns <`s`> if it matches the scheme for a URI, else returns `s`."
   ([s]
-   {:pre [(string? ?s)]
-    :post [#(string? %s)]
+   {:pre [(string? s)]
+    :post [#(string? %)]
     }
-   (if (re-matches #"^(http:|file:).*" s)
+   (if (re-matches #"^(http:|https:|file:).*" s)
      (str "<" s ">")
      s)))
 
@@ -311,7 +311,7 @@ NOTE: this does not seem to be a very mature class in Jena, and you may need
           (re-find #"(?i)SELECT" query)
           ]
     }
-     (log/debug query)
+     ;; (log/debug query)
      (-> (sparql-query endpoint
                        query
                        (merge http-req
