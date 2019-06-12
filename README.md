@@ -18,7 +18,7 @@ Require thus:
 ```
 (ns my.namespace
   (:require
-    [sparql-endpoint.core :as endpoint]
+    [ont-app.sparql-endpoint.core :as endpoint]
     ))
 ```
 
@@ -63,7 +63,7 @@ needed to specify the query to the endpoint.
 
 This function takes an endpoint and a SPARQL ASK query and returns a boolean:
 
-    (use 'sparql-endpoint.core)
+    (use 'ont-app.sparql-endpoint.core)
     (sparql-ask 
         "https://query.wikidata.org/bigdata/namespace/wdq/sparql"
         "ASK WHERE {wd:Q5 rdfs:label \"human\"@en}")
@@ -73,7 +73,7 @@ This function takes an endpoint and a SPARQL ASK query and returns a boolean:
 
 This function takes as its `query` parameter a SPARQL SELECT query:
 
-    (use 'sparql-endpoint.core)
+    (use 'ont-app.sparql-endpoint.core)
     (let [query "
     # What is the English name for Q5?
     PREFIX rdfs: `
@@ -100,7 +100,7 @@ described below.
 This function takes a SPARQL CONSTRUCT query as its query parameter
 and returns a string of [turtle](https://www.w3.org/TR/turtle/) describing the results.
 
-    (use 'sparql-endpoint.core)
+    (use 'ont-app.sparql-endpoint.core)
     (let [query "
     # Things called 'human'
     PREFIX eg: <http://example.com/>
@@ -160,7 +160,7 @@ representations. Hence the functions `simplify` and
 The function `simplify` will take a result binding and return a simplified map `{<var> <value>...}`. This would typically be done in the context of a map function:
 
 
-    (use 'sparql-endpoint.core)
+    (use 'ont-app.sparql-endpoint.core)
     (let [query "
     PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
     PREFIX wd: <http://www.wikidata.org/entity/>
@@ -191,7 +191,7 @@ defined as the value `default-translators`.
     
 By default the Jena library is referenced to translate [xsd datatypes](https://www.w3.org/TR/xmlschema11-2/) into instances of an appropriate class. In the following example, Obama's date of birth is translated to an instance of Jena's `XSDDateTime`, which has a `getYears` method:
     
-        (use 'sparql-endpoint.core)
+        (use 'ont-app.sparql-endpoint.core)
         (let [query "
         PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
         PREFIX wd: <http://www.wikidata.org/entity/>
@@ -219,7 +219,7 @@ by the function **parse-prologue**, described below.
 
 Compare this&#x2026;
 
-    (use 'sparql-endpoint.core)
+    (use 'ont-app.sparql-endpoint.core)
     (let [query "
     # Things called 'Barack Obama'
     PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
@@ -237,7 +237,7 @@ Compare this&#x2026;
 
 &#x2026; to this &#x2026;
 
-    (use 'sparql-endpoint.core)
+    (use 'ont-app.sparql-endpoint.core)
     (let [query "
     # Things called 'Barack Obama'
     PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>

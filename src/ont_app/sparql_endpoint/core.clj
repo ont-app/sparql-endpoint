@@ -1,4 +1,4 @@
-(ns sparql-endpoint.core
+(ns ont-app.sparql-endpoint.core
   "Functions to support interacting with a SPARQL endpoint.
   See also <https://www.w3.org/TR/sparql11-query/>.
   "

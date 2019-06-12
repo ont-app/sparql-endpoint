@@ -1,7 +1,7 @@
-(ns sparql-endpoint.core-test
+(ns ont-app.sparql-endpoint.core-test
   (:require [clojure.test :refer :all]
             [taoensso.timbre :as log]
-            [sparql-endpoint.core :as sparql]))
+            [ont-app.sparql-endpoint.core :as sparql]))
 
 (log/set-level! :warn)
 
@@ -83,12 +83,12 @@ the prolog of the query being parsed
 (deftest simplify-test
   (testing "`simplify` when mapped over the output of `sparql-select` should return simplified maps of the results"
     (let [uri-query "
-# What's the schema.org equivlent of Q5?
-Select ?schemaOrgEquivalent
+# What's the dbpedia.org equivlent of Q5?
+Select ?dbpediaEquivalent
 Where 
 {
-  wd:Q5 wdt:P1709 ?schemaOrgEquivalent. 
-  Filter Regex(Str(?schemaOrgEquivalent), \"schema.org\")
+  wd:Q5 wdt:P1709 ?dbpediaEquivalent. 
+  Filter Regex(Str(?dbpediaEquivalent), \"dbpedia.org\")
 } "
 
           label-query "
@@ -106,8 +106,8 @@ Where
 {
   wd:Q76 wdt:P569 ?dob.
 } "
-
           ]
+
       ;; Labels by default just return the string value...
       (is (= (map sparql/simplify
                   (sparql/sparql-select wikidata-endpoint (prefix label-query)))
@@ -116,7 +116,7 @@ Where
       ;; URIs are angle-braced by default...
       (is (= (map sparql/simplify
                   (sparql/sparql-select wikidata-endpoint (prefix uri-query)))
-             '({:schemaOrgEquivalent "https://schema.org/Person"})))
+             '({:dbpediaEquivalent "http://dbpedia.org/ontology/Person"})))
 
       ;; xsd values should be parsed into actual Java objects...
       (is (= (let [bindings (vec (map sparql/simplify
