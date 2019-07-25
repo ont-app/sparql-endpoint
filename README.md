@@ -188,6 +188,7 @@ defined as the value `default-translators`.
 | `:uri` | value is a uri| return raw value (typically "http://...") |
 | `:lang` | value is literal and has a language tag, e.g. "en" | return raw value (without the language tag)|
 | `:datatype` | value is literal and has an assigned datatype, g.g. "xsd:int" | parse XSD values, otherwise return raw value |
+| `:bnode` | value is a blank node | return raw value, typically like "b0" |
     
 By default the Jena library is referenced to translate [xsd datatypes](https://www.w3.org/TR/xmlschema11-2/) into instances of an appropriate class. In the following example, Obama's date of birth is translated to an instance of Jena's `XSDDateTime`, which has a `getYears` method:
     

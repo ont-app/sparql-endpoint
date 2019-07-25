@@ -218,6 +218,7 @@ NOTE: this does not seem to be a very mature class in Jena, and you may need
   {:uri (fn[b] (get b "value"))
    :lang (fn[b] (get b "value"))
    :datatype parse-xsd-value
+   :bnode (fn [b] (get b "value"))
    })
 
 
@@ -252,6 +253,8 @@ NOTE: this does not seem to be a very mature class in Jena, and you may need
                                 (and (= (get var-value "type") "literal")
                                      (contains? var-value "datatype"))
                                 (:datatype translators)
+                                (and (= (get var-value "type") "bnode"))
+                                (:bnode translators)
                                 :default
                                 (fn[b] (get b "value")))]
                           (translator var-value)))
