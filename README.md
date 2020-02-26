@@ -13,6 +13,7 @@ endpoints in clojure.
 
 [![Clojars Project](https://img.shields.io/clojars/v/ont-app/sparql-endpoint.svg)](https://clojars.org/ont-app/sparql-endpoint)
 
+
 Additional documentation is provided at https://cljdoc.org/d/ont-app/sparql-endpoint/0.1.1.
 
 Require thus:
