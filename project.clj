@@ -1,10 +1,10 @@
-(defproject ont-app/sparql-endpoint "0.1.1-SNAPSHOT"
+(defproject ont-app/sparql-endpoint "0.1.1"
   :description "Utilities for interfacing with a sparql endpoint in clojure"
   :url "https://github.com/ont-app/sparql-endpoint/"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :repl-options {:init-ns sparql-endpoint.core}
-  :dependencies [[org.clojure/clojure "1.8.0"]
+  :dependencies [[org.clojure/clojure "1.10.0"]
                  [org.clojure/data.json "0.2.6"]
                  [clj-http "3.9.0"]
                  ;; logging...
@@ -19,4 +19,9 @@
                  [org.apache.jena/jena-core "3.6.0"]
                  [org.apache.jena/jena-arq "3.6.0"]
                  [org.apache.jena/jena-iri "3.6.0"]
-                 ])
+                 ]
+  :plugins [[lein-codox "0.10.6"]
+            ]
+  :codox {:output-path "doc"}
+  :profiles {:uberjar {:aot :all}}
+  )
