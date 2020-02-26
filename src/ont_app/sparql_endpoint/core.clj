@@ -1,6 +1,6 @@
 (ns ont-app.sparql-endpoint.core
   "Functions to support interacting with a SPARQL endpoint.
-  See also <https://www.w3.org/TR/sparql11-query/>.
+  See also `https://www.w3.org/TR/sparql11-query`.
   "
   (:import 
    [org.apache.jena.datatypes.xsd XSDDatatype]
@@ -60,7 +60,7 @@ NOTE: this does not seem to be a very mature class in Jena, and you may need
   <qname> is typically a qname with a prefix defined in <prologue>,
     but may be any string
   <prologue> is the prologue parsed from <query>, for which see
-    spex at <https://www.w3.org/TR/sparql11-query/>.
+    spex at `https://www.w3.org/TR/sparql11-query/`.
   "
   [^String query]
   {
@@ -96,7 +96,7 @@ NOTE: this does not seem to be a very mature class in Jena, and you may need
   <endpoint> is a SPARQL update endpoint
   <update> is a SPARQL update expression
   <http-req> := {?param...}
-  <param> is anything described in <https://github.com/dakrone/clj-http>
+  <param> is anything described in `https://github.com/dakrone/clj-http`
     Though :form-params will be overridden.
     This may be used for authentication parameters for example.
     Default parameters are {:cookie-policy :standard, :accept text/plain}
@@ -236,7 +236,7 @@ NOTE: this does not seem to be a very mature class in Jena, and you may need
     maps to a (fn[var-value])-> <translated-value>, depending on whether
     <var-value> represents a URI, a literal with a language tag, or a literal
     with a specified datatype. Default is simply to render the 'value' field.
-  Note: see also <https://www.w3.org/TR/sparql11-results-json/>
+  Note: see also `https://www.w3.org/TR/sparql11-results-json/`
   "
   ([var-map]
    (simplify var-map default-translators)
@@ -335,7 +335,7 @@ NOTE: this does not seem to be a very mature class in Jena, and you may need
   <query> is a SPARQL ASK query
   <endpoint> is a SPARQL endpoint
   <http-req> := {<param> <spec>, ...}
-  <param> is anything described in <https://github.com/dakrone/clj-http>
+  <param> is anything described in `https://github.com/dakrone/clj-http`
   Though :form-params will be overridden.
 
   "
@@ -368,7 +368,7 @@ NOTE: this does not seem to be a very mature class in Jena, and you may need
   <query> := a SPARQL CONSTRUCT query
   <endpoint> the URL string of a SPARQL endpoint
   <http-req> := {?param...}
-  <param> is anything described in <`https://github.com/dakrone/clj-http`>
+  <param> is anything described in `https://github.com/dakrone/clj-http`
     Though :form-params will be overridden.
     The default :accept parameter is text/turtle.
   "
