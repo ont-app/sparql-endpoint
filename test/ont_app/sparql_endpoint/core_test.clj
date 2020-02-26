@@ -84,11 +84,10 @@ the prolog of the query being parsed
   (testing "`simplify` when mapped over the output of `sparql-select` should return simplified maps of the results"
     (let [uri-query "
 # What's the dbpedia.org equivlent of Q5?
-Select ?dbpediaEquivalent
+Select ?exactMatch
 Where 
 {
-  wd:Q5 wdt:P1709 ?dbpediaEquivalent. 
-  Filter Regex(Str(?dbpediaEquivalent), \"dbpedia.org\")
+  wd:Q5 wdt:P2888 ?exactMatch. # foaf equivalent
 } "
 
           label-query "
@@ -116,7 +115,8 @@ Where
       ;; URIs are angle-braced by default...
       (is (= (map sparql/simplify
                   (sparql/sparql-select wikidata-endpoint (prefix uri-query)))
-             '({:dbpediaEquivalent "http://dbpedia.org/ontology/Person"})))
+             '({:exactMatch "http://xmlns.com/foaf/spec/Person"})
+             ))
 
       ;; xsd values should be parsed into actual Java objects...
       (is (= (let [bindings (vec (map sparql/simplify
