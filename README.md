@@ -1,6 +1,7 @@
 
 # Contents
 - [Introduction](#h1-introduction)
+- [Installation](#h1-installation)
 - [Functions](#h1-functions)
   - [Functions that interact with SPARQL endpoints](#h2-functions-that-interact-with-sparql-endpoints)
     - [Mandatory arguments: `endpoint` and `query`](#h3-mandatory-arguments)
@@ -17,11 +18,13 @@
   - [parse-prologue](#h2-parse-prologue)
 
 
+<a name="h1-introduction"></a>
 # Introduction
 
 sparql-endpoint provides utilities for interfacing with [SPARQL 1.1](https://www.w3.org/TR/sparql11-query/)
 endpoints in clojure.
 
+<a name="h1-installation"></a>
 # Installation
 
 `sparql-endpoint` is available as a Maven artifact from clojars. 
