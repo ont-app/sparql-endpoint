@@ -1,12 +1,30 @@
 
+# Contents
+- [Introduction](#h1-introduction)
+- [Installation](#h1-installation)
+- [Functions](#h1-functions)
+  - [Functions that interact with SPARQL endpoints](#h2-functions-that-interact-with-sparql-endpoints)
+    - [Mandatory arguments: `endpoint` and `query`](#h3-mandatory-arguments)
+<a name="h1-introduction"></a>
+    - [Optional argument: `http-req`](#h3-optional-argument-http-req)
+    - [sparql-ask](#h3-sparql-ask)
+    - [sparql-select](#h3-sparql-select)
+    - [sparql-construct](#h3-sparql-construct)
+    - [sparql-update](#h3-sparql-update)
+  - [Simplifiers](#h2-simplifiers)
+    - [simplify](#h3-simplify)
+      - [Optional `translators` argument](#h4-optional-translators-argument)
+    - [simplifier-for-prolog](#h3-simplifier-for-prologue)
+  - [parse-prologue](#h2-parse-prologue)
 
+
+<a name="h1-introduction"></a>
 # Introduction
 
 sparql-endpoint provides utilities for interfacing with [SPARQL 1.1](https://www.w3.org/TR/sparql11-query/)
 endpoints in clojure.
 
-
-
+<a name="h1-installation"></a>
 # Installation
 
 `sparql-endpoint` is available as a Maven artifact from clojars. 
@@ -24,9 +42,10 @@ Require thus:
     ))
 ```
 
+<a name="h1-functions"></a>
 # Functions
 
-
+<a name="h2-functions-that-interact-with-sparql-endpoints"></a>
 ## Functions that interact with SPARQL endpoints
 
 These involve POSTs to an [update endpoint](https://www.w3.org/TR/sparql11-update/) and GETs to a [query
@@ -35,7 +54,7 @@ queries. Each of these take mandatory `endpoint` and `query`
 arguments, and an optional `http-req` argument.
 
 
-
+<a name="h3-mandatory-arguments"></a>
 ### Mandatory arguments: `endpoint` and `query`
 
 All of the basic query and update functions take two mandatory arguments: 
@@ -46,7 +65,7 @@ All of the basic query and update functions take two mandatory arguments:
 CONSTRUCT, or one of the UPDATE operations.
 
 
-
+<a name="h3-optional-argument-http-req"></a>
 ### Optional argument: `http-req`
 
 HTTP calls are done through [clj-http](https://github.com/dakrone/clj-http). There is a third optional
@@ -60,7 +79,7 @@ For example if `endpoint`requires authentication, you may specify
 be overridden. The `:query-params` parameter is reserved, as it is
 needed to specify the query to the endpoint.
 
-
+<a name="h3-sparql-ask"><a/>
 ### sparql-ask
 
 This function takes an endpoint and a SPARQL ASK query and returns a boolean:
@@ -71,6 +90,7 @@ This function takes an endpoint and a SPARQL ASK query and returns a boolean:
         "ASK WHERE {wd:Q5 rdfs:label \"human\"@en}")
     ;; --> true
 
+<a name="h3-sparql-select"></a>
 ### sparql-select
 
 This function takes as its `query` parameter a SPARQL SELECT query:
@@ -96,7 +116,7 @@ The bindings returned are direct translations of the JSON returned by
 the endpoint. These can be mapped by more expressive `simplifiers`,
 described below.
 
-
+<a name="h3-sparql-construct"></a>
 ### sparql-construct
 
 This function takes a SPARQL CONSTRUCT query as its query parameter
@@ -135,12 +155,14 @@ and returns a string of [turtle](https://www.w3.org/TR/turtle/) describing the r
     wd:Q5 a eg:Human .
     "
 
+<a name="h3-sparql-update"></a>
 ### sparql-update
 
 This function POSTS its query parameter (CREATE, INSERT, DELETE, etc)
 to the specified SPARQL update endpoint, and returns the plain text
 response.
 
+<a name="h2-simplifiers"></a>
 ## Simplifiers
 
 By default the output of `sparql-select` is parsed JSON of raw
@@ -157,6 +179,7 @@ It is usually convenient to transform these bindings into simpler
 representations. Hence the functions `simplify` and
 `simplifier-for-prologue`, described below.
 
+<a name="h3-simplify"></a>
 ### simplify
 
 The function `simplify` will take a result binding and return a simplified map `{<var> <value>...}`. This would typically be done in the context of a map function:
@@ -178,7 +201,7 @@ The function `simplify` will take a result binding and return a simplified map `
     ;; => ({:enLabel "human"})
     ;; Compare to [{"enLabel" {"xml:lang" "en", "type" "literal", "value" "human"}}]
 
-
+<a name="h4-optional-translators-argument"></a>
 ####  Optional `translators` argument
 
 `simplify` takes an optional argument `translators`, a map with three
@@ -212,7 +235,7 @@ By default the Jena library is referenced to translate [xsd datatypes](https://w
     
 Any of these values can be overridden with custom functions by merging `default-translators` with an overriding map.
 
-
+<a name="h3-simplifier-for-prologue"></a>
 ### simplifier-for-prologue
 
 This function takes a query with a prologue (Including a set of PREFIX
@@ -256,7 +279,7 @@ Compare this&#x2026;
     
     ;; => ({:Q "wd:Q76"} {:Q "wd:Q47513588"}) 
 
-
+<a name="h2-parse-prologue"></a>
 ## parse-prologue
 
 This function takes a SPARQL query and returns a vector with three values:
