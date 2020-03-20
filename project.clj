@@ -23,5 +23,5 @@
   :plugins [[lein-codox "0.10.6"]
             ]
   :codox {:output-path "doc"}
-  :profiles {:uberjar {:aot :all}}
+  :profiles {:uberjar {}}
   )
