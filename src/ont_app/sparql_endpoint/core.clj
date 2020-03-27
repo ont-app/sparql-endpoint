@@ -202,6 +202,19 @@ NOTE: this does not seem to be a very mature class in Jena, and you may need
       (.parse type (get literal "value"))
       (get literal "value"))))
 
+(defn ^String xsd-type-uri
+  "Returns xsd URI for (type `x`), or nil if there is no mapping in `type-mapper`.
+  Example: [1] -> 'http://www.w3.org/2001/XMLSchema#long'
+  Where:
+  <x> is any value.
+"
+  ([x]
+   (if-let [mapping (->> x
+                         (type)
+                         (.getTypeByClass type-mapper))
+            ]
+     (-> mapping
+         (.getURI)))))
 
 
 (def default-translators
