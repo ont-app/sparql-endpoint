@@ -16,6 +16,7 @@
       - [Optional `translators` argument](#h4-optional-translators-argument)
     - [simplifier-for-prolog](#h3-simplifier-for-prologue)
   - [parse-prologue](#h2-parse-prologue)
+  - [`xsd-type-uri`](#h2-xsd-type-uri)
 
 
 <a name="h1-introduction"></a>
