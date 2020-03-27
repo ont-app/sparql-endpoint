@@ -296,3 +296,20 @@ This function takes a SPARQL query and returns a vector with three values:
 Given a string for which there is no prefix declaration in the query,
 these last two functions will return their argument unchanged.
 
+<a name="h2-xsd-type-uri"></a>
+## `xsd-type-uri`
+
+It is possible to get the URI string for xsd types using the same Jena
+library that parses them. This works for most of the standard types:
+
+```
+> (sparql/xsd-type-uri 1)
+"http://www.w3.org/2001/XMLSchema#long"
+>
+> (sparql/xsd-type-uri 1.0)
+"http://www.w3.org/2001/XMLSchema#double"
+>
+> (sparql/xsd-type-uri #inst "2020-02-14")
+"http://www.w3.org/2001/XMLSchema#dateTime"
+>
+```

@@ -209,12 +209,16 @@ NOTE: this does not seem to be a very mature class in Jena, and you may need
   <x> is any value.
 "
   ([x]
-   (if-let [mapping (->> x
-                         (type)
-                         (.getTypeByClass type-mapper))
+   (if-let [mapping (.getTypeByClass
+                     type-mapper
+                     (if (or (inst? x)
+                             (instance? java.util.Calendar x))
+                       org.apache.jena.datatypes.xsd.XSDDateTime
+                       (type x)))
             ]
      (-> mapping
          (.getURI)))))
+
 
 
 (def default-translators

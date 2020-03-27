@@ -151,3 +151,12 @@ Where
                                   query)))
                      {:q "wd:Q5"})))))
 
+
+(deftest xsd-type-uri-issue-1
+  (testing "xsd-type-uri"
+    (is (= (sparql/xsd-type-uri 1)
+           "http://www.w3.org/2001/XMLSchema#long"))
+    (is (= (sparql/xsd-type-uri 1.0)
+           "http://www.w3.org/2001/XMLSchema#double"))
+    (is (= (sparql/xsd-type-uri #inst "2020-02-14")
+           "http://www.w3.org/2001/XMLSchema#dateTime"))))
