@@ -14,6 +14,7 @@
   - [Simplifiers](#h2-simplifiers)
     - [simplify](#h3-simplify)
       - [Optional `translators` argument](#h4-optional-translators-argument)
+        - [meta-tagged-literal](#h5-meta-tagged-literal)
     - [simplifier-for-prolog](#h3-simplifier-for-prologue)
   - [parse-prologue](#h2-parse-prologue)
   - [`xsd-type-uri`](#h2-xsd-type-uri)
@@ -183,7 +184,9 @@ representations. Hence the functions `simplify` and
 <a name="h3-simplify"></a>
 ### simplify
 
-The function `simplify` will take a result binding and return a simplified map `{<var> <value>...}`. This would typically be done in the context of a map function:
+The function `simplify` will take a result binding and return a
+simplified map `{<var> <value>...}`. This would typically be done in
+the context of a map function:
 
 
     (use 'ont-app.sparql-endpoint.core)
@@ -199,21 +202,23 @@ The function `simplify` will take a result binding and return a simplified map `
       ]
       (map simplify (sparql-select wikidata-endpoint query))
     
-    ;; => ({:enLabel "human"})
+    ;; => ({:enLabel #langStr "human@en"})
     ;; Compare to [{"enLabel" {"xml:lang" "en", "type" "literal", "value" "human"}}]
+
+The `#langString` reader macro is defined for literal values with
+xml:lang tags. Described in more detail in the next sections.
 
 <a name="h4-optional-translators-argument"></a>
 ####  Optional `translators` argument
 
-`simplify` takes an optional argument `translators`, a map with three
-keys: `:uri`, `:lang` and `:datatype`. Default values for this map are
-defined as the value `default-translators`.
+`simplify` optionally takes two arguments, the first of which is
+`translators`, a map with four keys: `:uri`, `:lang`, `:datatype` and `:bnode`. Default values for this map are defined as the value `default-translators`.
     
 | key | description | default  |
 | --- |--- | ---|
 | `:uri` | value is a uri| return raw value (typically "http://...") |
-| `:lang` | value is literal and has a language tag, e.g. "en" | return raw value (without the language tag)|
-| `:datatype` | value is literal and has an assigned datatype, g.g. "xsd:int" | parse XSD values, otherwise return raw value |
+| `:lang` | value is literal and has a language tag, e.g. "en" | return a [LangStr](#h5-LangStr) |
+| `:datatype` | value is literal and has an assigned datatype, g.g. "xsd:int" | parse XSD values, otherwise return a [meta-tagged-literal](#h5-meta-tagged-literal) |
 | `:bnode` | value is a blank node | return raw value, typically like "b0" |
     
 By default the Jena library is referenced to translate [xsd datatypes](https://www.w3.org/TR/xmlschema11-2/) into instances of an appropriate class. In the following example, Obama's date of birth is translated to an instance of Jena's `XSDDateTime`, which has a `getYears` method:
@@ -234,7 +239,66 @@ By default the Jena library is referenced to translate [xsd datatypes](https://w
                                  0))))
         ;; -> 1961
     
-Any of these values can be overridden with custom functions by merging `default-translators` with an overriding map.
+Any of these values can be overridden with custom functions by merging
+`default-translators` with an overriding map, as exemplified in the description of _meta-tagged-literal_, discussed in the next section.
+
+<a name="h5-LangStr"></a>
+##### LangStr
+
+LangStr is a type which holds a strong and a language tag.
+
+There is a reader macro associated with it
+
+```
+> (def gaol #langStr "gaol@en-uk")
+gaol
+> (str gaol)
+"gaol"
+> (lang gaol)
+"en-uk"
+
+```
+
+The default translator for literals with language tags is `literal->langstr`
+
+```
+> (literal->LangStr 
+    {"xml:lang" "en", 
+     "type" "literal", 
+     "value" "human"}))
+#langStr "human@en"
+>
+```
+
+<a name="h5-meta-tagged-literal"></a>
+##### meta-tagged-literal
+
+The function `meta-tagged-literal` reifies an Object whose _toString_
+method is the "value" field in the SPARQL binding map, and whose
+metadata contains everything else.
+
+This is used In the case of non-xsd datatypes (typically encoded in
+SPARQL as '"<datatype-encoded-with-my-syntax>"^^MyDatatype'):
+
+```
+> (def my-datum 
+   (meta-tagged-literal 
+     {"datatype" "MyDatatype" 
+      "type" "literal" 
+      "value" "<datatype-encoded-with-my-syntax>"}))
+my-datum
+> 
+> my-datum
+#object[ont_app.sparql_endpoint.core$meta_tagged_literal$reify__14016 0x2a92b8aa "<datatype-encoded-with-my-syntax>"]
+>
+> (str my-datum)
+"<datatype-encoded-with-my-syntax>"
+>
+> (meta my-datum)
+{"type" "literal", "datatype" "MyDatatype"}
+>
+```
+
 
 <a name="h3-simplifier-for-prologue"></a>
 ### simplifier-for-prologue
