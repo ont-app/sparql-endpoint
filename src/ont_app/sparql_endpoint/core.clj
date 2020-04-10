@@ -106,8 +106,8 @@ NOTE: this does not seem to be a very mature class in Jena, and you may need
   
   ([endpoint update http-req]
    {
-    :pre [(re-find #"http" endpoint)
-          (string? update)
+    :pre [(string? update)
+          (re-find #"http" (str endpoint))
           (map? http-req)
           ]
     }
@@ -166,6 +166,40 @@ NOTE: this does not seem to be a very mature class in Jena, and you may need
                            (:body response))))))))
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; LANGSTR
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(deftype LangStr [s tag]
+  Object
+  (toString [_] s)
+  (equals [this that]
+    (and (instance? LangStr that)
+         (= s (.s that))
+         (= tag (.tag that)))))
+
+
+(defn lang [langStr]
+  (.tag langStr))
+
+(defmethod print-method LangStr
+  [literal ^java.io.Writer w]
+  (.write w (str "#langStr \"" literal "@" (.tag literal) "\"")))
+
+(defmethod print-dup LangStr [o ^java.io.Writer w]
+  (print-method o w))
+
+(defn ^LangStr read-LangStr [form]
+  (let [langstring-re #"^(.*)@([-a-zA-Z]+)" 
+        m (re-matches langstring-re form)
+        ]
+    (when (not= (count m) 3)
+      (throw (ex-info "Bad LangString fomat"
+                      {:type ::BadLangstringFormat
+                       :regex langstring-re
+                       :form form})))
+    (let [[_ s lang] m]
+      (LangStr. s lang))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; SELECT queries, and supporting functions
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -174,6 +208,31 @@ NOTE: this does not seem to be a very mature class in Jena, and you may need
   "Maps datatype names to xsd datatypes"
   (. TypeMapper getInstance))
 
+(defn ^LangStr literal->LangStr [literal]
+  (if-let [lang (literal "xml:lang")
+           ]
+    (LangStr. (literal "value") lang)))
+    
+
+(defn meta-tagged-literal
+  "Returns a reified object s.t. ^{:type <type>, <k> <v>, ...} Object.toString(this) -> value
+  Where
+  <literal> is a sparql binding value-map s.t.
+    {type literal, <k> <v>, value <value> ...}
+  <type> is one of ::langString ::datatype
+  <k> is any key in <literal> except 'type' and 'value', e.g. xml:lang or datatype
+  <v> is the value associated with <k> in <literal>
+  NOTE: type ::langString keys to a print-method  and the function
+    read-langString,  supporting the #langString reader macro
+  "
+  [literal]
+  (with-meta
+    (reify Object
+      (toString [x] (get literal "value")))
+    (dissoc literal "value")))
+
+
+    
 (defn parse-xsd-value 
   "
   Returns <translated-value> for `literal`
@@ -200,7 +259,8 @@ NOTE: this does not seem to be a very mature class in Jena, and you may need
         ]
     (if type
       (.parse type (get literal "value"))
-      (get literal "value"))))
+      (meta-tagged-literal literal))))
+
 
 (defn ^String xsd-type-uri
   "Returns xsd URI for (type `x`), or nil if there is no mapping in `type-mapper`.
@@ -233,7 +293,7 @@ NOTE: this does not seem to be a very mature class in Jena, and you may need
                 }
   "
   {:uri (fn[b] (get b "value"))
-   :lang (fn[b] (get b "value"))
+   :lang literal->LangStr
    :datatype parse-xsd-value
    :bnode (fn [b] (get b "value"))
    })
@@ -256,9 +316,9 @@ NOTE: this does not seem to be a very mature class in Jena, and you may need
   Note: see also `https://www.w3.org/TR/sparql11-results-json/`
   "
   ([var-map]
-   (simplify var-map default-translators)
+   (simplify default-translators var-map)
    )
-  ([var-map translators]
+  ([translators var-map]
    (let [render-value (fn[var-value]
                         (let [translator
                               (cond
@@ -290,17 +350,18 @@ NOTE: this does not seem to be a very mature class in Jena, and you may need
     prologue to `query`, and otherwise using `translators` (default
     `default-translators`)"
   ([query]
-   (simplifier-for-prologue query default-translators)
+   (simplifier-for-prologue default-translators query)
    )
-  ([query translators]
+  ([translators query]
   (let [[_ q-namer _] (parse-prologue query)]
     (fn[var-map]
       (simplify
-       var-map
        (merge translators
               {:uri (fn[var-value]
                       (q-namer (get var-value "value")))
-               }))))))
+               })
+       var-map
+       )))))
 
 (defn sparql-select
   "

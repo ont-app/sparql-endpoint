@@ -80,6 +80,9 @@ the prolog of the query being parsed
       (is (= (q-to-u  "blah") "blah"))
       (is (= (u-to-q  "blah") "blah")))))
 
+
+
+
 (deftest simplify-test
   (testing "`simplify` when mapped over the output of `sparql-select` should return simplified maps of the results"
     (let [uri-query "
@@ -107,15 +110,20 @@ Where
 } "
           ]
 
-      ;; Labels by default just return the string value...
-      (is (= (map sparql/simplify
-                  (sparql/sparql-select wikidata-endpoint (prefix label-query)))
-             '({:label "human"})))
+      ;; default lang tags by default just return the string:
+      (is (=
+           (first
+            (map :label
+                 (map sparql/simplify
+                      (sparql/sparql-select wikidata-endpoint
+                                            (prefix label-query)))))
+           #langStr "human@en"))
 
       ;; URIs are angle-braced by default...
-      (is (= (map sparql/simplify
+      (is (some
+           (fn [b] (= b {:exactMatch "http://xmlns.com/foaf/spec/Person"}))
+           (map sparql/simplify
                   (sparql/sparql-select wikidata-endpoint (prefix uri-query)))
-             '({:exactMatch "http://xmlns.com/foaf/spec/Person"})
              ))
 
       ;; xsd values should be parsed into actual Java objects...
@@ -129,7 +137,6 @@ Where
                (.getYears dob)) 
              1961))
       ;; ... See https://jena.apache.org/documentation/javadoc/jena/org/apache/jena/datatypes/xsd/XSDDateTime.html
-
       )))
 
 (deftest simplifier-for-prologue-test
