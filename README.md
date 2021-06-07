@@ -36,7 +36,7 @@ clojure.
 [![Clojars Project](https://img.shields.io/clojars/v/ont-app/sparql-endpoint.svg)](https://clojars.org/ont-app/sparql-endpoint)
 
 
-Additional documentation is provided at https://cljdoc.org/d/ont-app/sparql-endpoint/0.1.1.
+Additional documentation is provided at https://cljdoc.org/d/ont-app/sparql-endpoint/0.1.2.
 
 Require thus:
 ```
@@ -218,7 +218,7 @@ below.
 ### simplify
 
 The function
-[simplify](https://cljdoc.org/d/ont-app/sparql-endpoint/0.1.1/api/ont-app.sparql-endpoint.core#simplify)
+[simplify](https://cljdoc.org/d/ont-app/sparql-endpoint/0.1.2/api/ont-app.sparql-endpoint.core#simplify)
 will take a result binding and return a simplified map `{<var>
 <value>...}`. This would typically be done in the context of a map
 function:
@@ -234,12 +234,12 @@ function:
              }"
       ]
   (map simplify (sparql-select wikidata-endpoint query))
-({:enLabel #langStr "human@en"})
+({:enLabel #lstr "human@en"})
 ;; Compare to [{"enLabel" {"xml:lang" "en", "type" "literal", "value" "human"}}]
 >
 ```
 
-The `#langString` reader macro is defined for literal values with
+The `#lstr` reader macro is defined for literal values with
 `xml:lang` tags. Described in more detail in the next sections.
 
 <a name="h4-optional-translators-argument"></a>
@@ -252,7 +252,7 @@ The `#langString` reader macro is defined for literal values with
     
 | key | description | default  |
 | --- | --- | --- |
-| `:uri` | value is a uri| return raw value (typically "http://...") |
+| `:uri` | value is a uri| return raw URI string (typically "http://...") |
 | `:lang` | value is literal and has a language tag, e.g. "en" | return a [LangStr](#h5-LangStr) |
 | `:datatype` | value is literal and has an assigned datatype, g.g. "xsd:int" | parse XSD values, otherwise return a [meta-tagged-literal](#h5-meta-tagged-literal) |
 | `:bnode` | value is a blank node | return raw value, typically like "b0" |
@@ -293,29 +293,22 @@ description of _meta-tagged-literal_, discussed
 <a name="h5-LangStr"></a>
 ##### LangStr
 
-LangStr is a type which holds a strong and a language tag.
+LangStr is a type which holds a strng and a language tag.
 
-There is a reader macro associated with it
+It is defined in the [ont-app/vocabulary](https://github.com/ont-app/vocabulary#h2-language-tagged-strings) module.
 
-```
-> (def gaol #langStr "gaol@en-GB")
-gaol
-> (str gaol)
-"gaol"
-> (lang gaol)
-"en-GB"
-```
-
-The default translator for literals with language tags is `literal->LangStr`
+Examples:
 
 ```
-> (literal->LangStr 
-    {"xml:lang" "en", 
-     "type" "literal", 
-     "value" "human"}))
-#langStr "human@en"
->
+> (type #lstr "human@en")
+ont_app.vocabulary.lstr.LangStr
+> (str #lstr "human@en")
+human
+> (ont-app.vocabulary.lstr/lang  #lstr "human@en")
+"en"
 ```
+
+See the docs for ont-app/vocabulary for details.
 
 <a name="h5-meta-tagged-literal"></a>
 ##### meta-tagged-literal

@@ -8,13 +8,17 @@
    [org.apache.jena.sparql.core Prologue]
    [org.apache.jena.query QueryFactory Query]
    [org.apache.jena.iri IRI IRIFactory]
+   
    )
   (:require
    [clj-http.client :as http]
    [clojure.string :as s]
    [clojure.data.json :as json]
    [taoensso.timbre :as log]
+   [ont-app.vocabulary.core :as voc]
+   [ont-app.vocabulary.lstr :refer [->LangStr lang]]
    ))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; URI/IRI utilities
@@ -30,17 +34,6 @@
      (str "<" s ">")
      s)))
 
-(def ^IRIFactory the-iri-factory (. IRIFactory iriImplementation))
-
-(defn iri-for
-  "Returns an instance of `org.apache.jena.iri.impl.IRIImpl` for `uri`
-Where
-<uri> a string, typically the 'value' value of a SELECT binding whose 'type' 
-  value is 'uri'
-NOTE: this does not seem to be a very mature class in Jena, and you may need 
-  to poke around a bit to find methods that don't trigger NYI errors"
-  ([^String uri]
-   (.create the-iri-factory uri)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Query parsing
@@ -166,53 +159,16 @@ NOTE: this does not seem to be a very mature class in Jena, and you may need
                            (:body response))))))))
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; LANGSTR
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(deftype LangStr [s tag]
-  Object
-  (toString [_] s)
-  (equals [this that]
-    (and (instance? LangStr that)
-         (= s (.s that))
-         (= tag (.tag that)))))
 
-
-(defn lang [langStr]
-  (.tag langStr))
-
-(defmethod print-method LangStr
-  [literal ^java.io.Writer w]
-  (.write w (str "#langStr \"" literal "@" (.tag literal) "\"")))
-
-(defmethod print-dup LangStr [o ^java.io.Writer w]
-  (print-method o w))
-
-(defn ^LangStr read-LangStr [form]
-  (let [langstring-re #"^(.*)@([-a-zA-Z]+)" 
-        m (re-matches langstring-re form)
-        ]
-    (when (not= (count m) 3)
-      (throw (ex-info "Bad LangString fomat"
-                      {:type ::BadLangstringFormat
-                       :regex langstring-re
-                       :form form})))
-    (let [[_ s lang] m]
-      (LangStr. s lang))))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; SELECT queries, and supporting functions
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (def ^TypeMapper type-mapper
   "Maps datatype names to xsd datatypes"
   (. TypeMapper getInstance))
 
-(defn ^LangStr literal->LangStr [literal]
-  (if-let [lang (literal "xml:lang")
+(defn ^ont_app.vocabulary.lstr.LangStr literal->LangStr [literal]
+  (if-let [lang-tag (literal "xml:lang")
            ]
-    (LangStr. (literal "value") lang)))
-    
+    (->LangStr (literal "value") lang-tag)))
 
 (defn meta-tagged-literal
   "Returns a reified object s.t. ^{:type <type>, <k> <v>, ...} Object.toString(this) -> value
@@ -231,8 +187,6 @@ NOTE: this does not seem to be a very mature class in Jena, and you may need
       (toString [x] (get literal "value")))
     (dissoc literal "value")))
 
-
-    
 (defn parse-xsd-value 
   "
   Returns <translated-value> for `literal`

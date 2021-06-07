@@ -117,7 +117,7 @@ Where
                  (map sparql/simplify
                       (sparql/sparql-select wikidata-endpoint
                                             (prefix label-query)))))
-           #langStr "human@en"))
+           #lstr "human@en"))
 
       ;; URIs are angle-braced by default...
       (is (some
