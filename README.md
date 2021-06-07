@@ -249,6 +249,8 @@ The `#lstr` reader macro is defined for literal values with
 `translators`, a map with four keys: `:uri`, `:lang`, `:datatype` and
 `:bnode`. Default values for this map are defined as the value
 `default-translators`.
+
+Each key maps to a function of the form `[sparql-binding] -> value`
     
 | key | description | default  |
 | --- | --- | --- |
@@ -290,16 +292,24 @@ Any of these values can be overridden with custom functions by merging
 description of _meta-tagged-literal_, discussed
 [below](#h5-meta-tagged-literal).
 
+Since ont-app/vocabulary is a dependency of this library, you may wish to override the default :uri translator thus:
+
+```clojure
+(def kwi-simplifier 
+  (merge sparql/default-translators
+     {:uri (fn [binding] (voc/keyword-for (binding "value")))}))
+```
+
 <a name="h5-LangStr"></a>
 ##### LangStr
 
-LangStr is a type which holds a strng and a language tag.
+LangStr is a type which holds a string and a language tag.
 
-It is defined in the [ont-app/vocabulary](https://github.com/ont-app/vocabulary#h2-language-tagged-strings) module.
+It is defined in the supporting library `ont-app.vocabulary.lstr`.
 
 Examples:
 
-```
+```clojure
 > (type #lstr "human@en")
 ont_app.vocabulary.lstr.LangStr
 > (str #lstr "human@en")
@@ -308,7 +318,8 @@ human
 "en"
 ```
 
-See the docs for ont-app/vocabulary for details.
+See the docs for [ont-app/vocabulary](https://github.com/ont-app/vocabulary#h2-language-tagged-strings) for details.
+
 
 <a name="h5-meta-tagged-literal"></a>
 ##### meta-tagged-literal

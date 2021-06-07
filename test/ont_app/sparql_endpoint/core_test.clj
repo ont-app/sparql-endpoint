@@ -1,6 +1,7 @@
 (ns ont-app.sparql-endpoint.core-test
   (:require [clojure.test :refer :all]
             [taoensso.timbre :as log]
+            [ont-app.vocabulary.core :as voc]
             [ont-app.sparql-endpoint.core :as sparql]))
 
 (log/set-level! :warn)
@@ -167,3 +168,28 @@ Where
            "http://www.w3.org/2001/XMLSchema#double"))
     (is (= (sparql/xsd-type-uri #inst "2020-02-14")
            "http://www.w3.org/2001/XMLSchema#dateTime"))))
+
+(deftest simplifier-for-kwi-test
+  (let [query "
+# All the Q-numbers called 'human' in English
+
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX wd: <http://www.wikidata.org/entity/>
+Select ?q 
+Where 
+{
+  ?q rdfs:label \"human\"@en
+}"
+        ]
+    (is (contains? 
+         (->> 
+          (sparql/sparql-select
+           wikidata-endpoint
+           query)
+          (map (sparql/make-simplifier
+                (sparql/update-translators sparql/default-translators
+                                           :uri
+                                           voc/keyword-for)))
+          (set))
+         {:q :http://www.wikidata.org/entity/Q5}))))
+  
