@@ -8,7 +8,7 @@
 (log/set-level! :warn)
 
 
-(def wikidata-endpoint (wd/sparql-endpoint))
+(def wikidata-endpoint wd/sparql-endpoint)
 
 
 (def prefixes
@@ -119,12 +119,7 @@ Where
                  (map sparql/simplify
                       (sparql/sparql-select wikidata-endpoint
                                             (prefix label-query)))))
-<<<<<<< HEAD
            #lstr "human@en"))
-=======
-           #langStr "human@en"))
-      ;;(sparql/meta-tagged-literal {"xml:lang" "en" "value" "human"})))
->>>>>>> b5ba5ca7f1c9aad12b88adcb950aeaa712f8c4b0
 
       ;; URIs are angle-braced by default...
       (is (some
@@ -188,5 +183,5 @@ Where
            human-query)
           (map sparql/simplifier-with-kwis)
           (set))
-         {:q :http://www.wikidata.org/entity/Q5}))))
+         {:q :wd/Q5}))))
   

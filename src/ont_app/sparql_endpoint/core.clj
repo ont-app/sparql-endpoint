@@ -159,53 +159,12 @@
                            (:body response))))))))
 
 
-<<<<<<< HEAD
 
-=======
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; LANGSTR
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(deftype LangStr [s tag]
-  Object
-  (toString [_] s)
-  (equals [this that]
-    (and (instance? LangStr that)
-         (= s (.s that))
-         (= tag (.tag that)))))
-
-
-(defn lang [langStr]
-  (.tag langStr))
-
-(defmethod print-method LangStr
-  [literal ^java.io.Writer w]
-  (.write w (str "#langStr \"" literal "@" (.tag literal) "\"")))
-
-(defmethod print-dup LangStr [o ^java.io.Writer w]
-  (print-method o w))
-
-(defn ^LangStr read-LangStr [form]
-  (let [langstring-re #"^(.*)@([-a-zA-Z]+)" 
-        m (re-matches langstring-re form)
-        ]
-    (when (not= (count m) 3)
-      (throw (ex-info "Bad LangString fomat"
-                      {:type ::BadLangstringFormat
-                       :regex langstring-re
-                       :form form})))
-    (let [[_ s lang] m]
-      (LangStr. s lang))))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; SELECT queries, and supporting functions
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
->>>>>>> b5ba5ca7f1c9aad12b88adcb950aeaa712f8c4b0
 
 (def ^TypeMapper type-mapper
   "Maps datatype names to xsd datatypes"
   (. TypeMapper getInstance))
 
-<<<<<<< HEAD
 (defn ^ont_app.vocabulary.lstr.LangStr literal->LangStr [literal]
   (if-let [lang-tag (literal "xml:lang")
            ]
@@ -219,22 +178,6 @@
   - `type` is one of ::langString ::datatype
   - `k` is any key in `literal` except 'type' and 'value', e.g. xml:lang or datatype
   - `v` is the value associated with `k` in `literal`
-=======
-(defn ^LangStr literal->LangStr [literal]
-  (if-let [lang (literal "xml:lang")
-           ]
-    (LangStr. (literal "value") lang)))
-    
-
-(defn meta-tagged-literal
-  "Returns a reified object s.t. ^{:type <type>, <k> <v>, ...} Object.toString(this) -> value
-  Where
-  <literal> is a sparql binding value-map s.t.
-    {type literal, <k> <v>, value <value> ...}
-  <type> is one of ::langString ::datatype
-  <k> is any key in <literal> except 'type' and 'value', e.g. xml:lang or datatype
-  <v> is the value associated with <k> in <literal>
->>>>>>> b5ba5ca7f1c9aad12b88adcb950aeaa712f8c4b0
   NOTE: type ::langString keys to a print-method  and the function
     read-langString,  supporting the #langString reader macro
   "
@@ -244,11 +187,6 @@
       (toString [x] (get literal "value")))
     (dissoc literal "value")))
 
-<<<<<<< HEAD
-=======
-
-    
->>>>>>> b5ba5ca7f1c9aad12b88adcb950aeaa712f8c4b0
 (defn parse-xsd-value 
   "
   Returns `translated-value` for `literal`
@@ -389,7 +327,6 @@
    (simplifier-for-prologue default-translators query)
    )
   ([translators query]
-<<<<<<< HEAD
    (let [[_ q-namer _] (parse-prologue query)]
      (make-simplifier (update-translators translators :uri q-namer)))))
 
@@ -397,17 +334,6 @@
 (def simplifier-with-kwis
   (make-simplifier (update-translators default-translators
                                        :uri voc/keyword-for)))
-=======
-  (let [[_ q-namer _] (parse-prologue query)]
-    (fn[var-map]
-      (simplify
-       (merge translators
-              {:uri (fn[var-value]
-                      (q-namer (get var-value "value")))
-               })
-       var-map
-       )))))
->>>>>>> b5ba5ca7f1c9aad12b88adcb950aeaa712f8c4b0
 
 (defn sparql-select
   "
