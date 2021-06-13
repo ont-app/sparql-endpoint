@@ -1,6 +1,9 @@
 
+The `sparql-endpoint` library provides utilities for interfacing with
+[SPARQL 1.1](https://www.w3.org/TR/sparql11-query/) endpoints in
+clojure.
+
 # Contents
-- [Introduction](#h1-introduction)
 - [Installation](#h1-installation)
 - [Functions](#h1-functions)
   - [Functions that interact with SPARQL endpoints](#h2-functions-that-interact-with-sparql-endpoints)
@@ -14,19 +17,13 @@
   - [Simplifiers](#h2-simplifiers)
     - [simplify](#h3-simplify)
       - [Optional `translators` argument](#h4-optional-translators-argument)
-        - [LangStr](#h5-langstr)
-        - [meta-tagged-literal](#h5-meta-tagged-literal)
+    - [Customizing simplifiers](#h3-customizing-simplifiers)
+    - [LangStr](#h3-langstr)
+    - [meta-tagged-literal](#h3-meta-tagged-literal)
     - [simplifier-for-prolog](#h3-simplifier-for-prologue)
   - [parse-prologue](#h2-parse-prologue)
   - [`xsd-type-uri`](#h2-xsd-type-uri)
 
-
-<a name="h1-introduction"></a>
-# Introduction
-
-The `sparql-endpoint` library provides utilities for interfacing with
-[SPARQL 1.1](https://www.w3.org/TR/sparql11-query/) endpoints in
-clojure.
 
 <a name="h1-installation"></a>
 # Installation
@@ -224,16 +221,15 @@ will take a result binding and return a simplified map `{<var>
 function:
 
 ```
-(let [query "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+(def human-query "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
              PREFIX wd: <http://www.wikidata.org/entity/>
              SELECT ?enLabel
              WHERE
              {
                wd:Q5 rdfs:label ?enLabel.
                Filter (Lang(?enLabel) = \"en\")
-             }"
-      ]
-  (map simplify (sparql-select wikidata-endpoint query))
+             }")
+  (map simplify (sparql-select wikidata-endpoint human-query))
 ({:enLabel #lstr "human@en"})
 ;; Compare to [{"enLabel" {"xml:lang" "en", "type" "literal", "value" "human"}}]
 >
@@ -286,22 +282,36 @@ method:
 1961
 >
 ```
+<a name="h3-customizing-simplifers"></a>
+### Customizing simplifiers
 
 Any of these values can be overridden with custom functions by merging
-`default-translators` with an overriding map, as exemplified in the
-description of _meta-tagged-literal_, discussed
-[below](#h5-meta-tagged-literal).
+`default-translators` with an overriding map.
 
-Since ont-app/vocabulary is a dependency of this library, you may wish to override the default :uri translator thus:
 
-```clojure
-(def kwi-simplifier 
-  (merge sparql/default-translators
-     {:uri (fn [binding] (voc/keyword-for (binding "value")))}))
+Since `ont-app/vocabulary` is a dependency of this library, there is an alternative to the default simplifier called `simplifier-with-kwis`
+
+```
+> (use 'ont-app.vocabulary.wikidata)
+> (->> 
+    (sparql/sparql-select wikidata-endpoint human-query)
+    (map sparql/simplifier-with-kwis)
+    (set))
+#{{:q :wd/Q823310} {:q :wd/Q5} {:q :wd/Q73755406}}
+> (voc/uri-for :wd/Q5)
+"http://www.wikidata.org/entity/Q5"
 ```
 
-<a name="h5-LangStr"></a>
-##### LangStr
+This was defined using the functions `update-translators` and `make-simplifier`:
+
+```
+(def simplifier-with-kwis
+  (make-simplifier (update-translators default-translators
+                                       :uri voc/keyword-for)))
+```
+
+<a name="h3-LangStr"></a>
+### LangStr
 
 LangStr is a type which holds a string and a language tag.
 
@@ -321,8 +331,8 @@ human
 See the docs for [ont-app/vocabulary](https://github.com/ont-app/vocabulary#h2-language-tagged-strings) for details.
 
 
-<a name="h5-meta-tagged-literal"></a>
-##### meta-tagged-literal
+<a name="h3-meta-tagged-literal"></a>
+### meta-tagged-literal
 
 The function `meta-tagged-literal` reifies an Object whose _toString_
 method is the "value" field in the SPARQL binding map, and whose

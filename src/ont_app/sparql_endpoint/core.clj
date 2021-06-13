@@ -253,6 +253,7 @@
    })
 
 
+
 (defn simplify
   "Returns {`var-keyword` `translated-value`, ...} for each `var` in `var-map`,
     translated according to `translators` (default `default-translators`)
@@ -313,10 +314,9 @@
           }))
 
 (defn make-simplifier
-   (fn [var-map]
-     (simplify translators var-map)))
-
-
+  [translators]
+  (fn [var-map]
+    (simplify translators var-map)))
 
 (defn simplifier-for-prologue
   "Returns a function (fn[`var-map`] -> {`var-keyword` `translated-value`, ...}
@@ -331,8 +331,9 @@
      (make-simplifier (update-translators translators :uri q-namer)))))
 
 
-
-
+(def simplifier-with-kwis
+  (make-simplifier (update-translators default-translators
+                                       :uri voc/keyword-for)))
 
 (defn sparql-select
   "

@@ -2,12 +2,13 @@
   (:require [clojure.test :refer :all]
             [taoensso.timbre :as log]
             [ont-app.vocabulary.core :as voc]
+            [ont-app.vocabulary.wikidata :as wd]
             [ont-app.sparql-endpoint.core :as sparql]))
 
 (log/set-level! :warn)
 
-(def wikidata-endpoint "https://query.wikidata.org/bigdata/namespace/wdq/sparql")
 
+(def wikidata-endpoint (wd/sparql-endpoint))
 
 
 (def prefixes
@@ -140,9 +141,7 @@ Where
       ;; ... See https://jena.apache.org/documentation/javadoc/jena/org/apache/jena/datatypes/xsd/XSDDateTime.html
       )))
 
-(deftest simplifier-for-prologue-test
-  (testing "The function returned by `simplifier-for-prologue` when mapped over the output of `sparql-select` should render a qnames URIs for which there is a prefix declaration."
-    (let [query "
+(def human-query "
 # All the Q-numbers called 'human' in English
 
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
@@ -152,12 +151,18 @@ Where
 {
   ?q rdfs:label \"human\"@en
 }"
+  )
+
+(deftest simplifier-for-prologue-test
+  (testing "The function returned by `simplifier-for-prologue` when mapped over the output of `sparql-select` should render a qnames URIs for which there is a prefix declaration."
+    (let [
           ]
-      (is (contains? (set (map (sparql/simplifier-for-prologue query)
+      (is (contains? (set (map (sparql/simplifier-for-prologue human-query)
                                (sparql/sparql-select
                                   wikidata-endpoint
-                                  query)))
+                                  human-query)))
                      {:q "wd:Q5"})))))
+
 
 
 (deftest xsd-type-uri-issue-1
@@ -169,27 +174,14 @@ Where
     (is (= (sparql/xsd-type-uri #inst "2020-02-14")
            "http://www.w3.org/2001/XMLSchema#dateTime"))))
 
-(deftest simplifier-for-kwi-test
-  (let [query "
-# All the Q-numbers called 'human' in English
-
-PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-PREFIX wd: <http://www.wikidata.org/entity/>
-Select ?q 
-Where 
-{
-  ?q rdfs:label \"human\"@en
-}"
-        ]
+(deftest simplifier-with-kwi-test
+  (let []
     (is (contains? 
          (->> 
           (sparql/sparql-select
            wikidata-endpoint
-           query)
-          (map (sparql/make-simplifier
-                (sparql/update-translators sparql/default-translators
-                                           :uri
-                                           voc/keyword-for)))
+           human-query)
+          (map sparql/simplifier-with-kwis)
           (set))
          {:q :http://www.wikidata.org/entity/Q5}))))
   
