@@ -124,7 +124,7 @@
 
 (defn sparql-query
   "
-  Returns output of <response-body> for SPARQL `query`
+  Returns output of `response-body` for SPARQL `query`
     posed to `endpoint`, possibly informed by `http-req`
   Where
   - `response-body` is the body of the response to `query`, posed to `endpoint`
@@ -165,7 +165,11 @@
   "Maps datatype names to xsd datatypes"
   (. TypeMapper getInstance))
 
-(defn ^ont_app.vocabulary.lstr.LangStr literal->LangStr [literal]
+(defn ^ont_app.vocabulary.lstr.LangStr literal->LangStr 
+  "Returns and instance of `LangStr` for `literal`
+Where
+- `literal`  is a language-tagged literal returned from a query"
+  [literal]
   (if-let [lang-tag (literal "xml:lang")
            ]
     (->LangStr (literal "value") lang-tag)))
@@ -179,7 +183,7 @@
   - `k` is any key in `literal` except 'type' and 'value', e.g. xml:lang or datatype
   - `v` is the value associated with `k` in `literal`
   NOTE: type ::langString keys to a print-method  and the function
-    read-langString,  supporting the #langString reader macro
+    `ont-app.vocabulary.lstr/read-LangStr`,  supporting the #langString reader macro
   "
   [literal]
   (with-meta
@@ -264,7 +268,7 @@
     per the SPARQL 1.1 specification for SELECT queries.
   - `var-keyword` is keyword corresponding to `var`
   - `translated-value` is `value` from `var-value`, translated using `translators`
-  - `translators` is a map with keys in #{:uri :lang :datatype}, each of which
+  - `translators` := m s.t. (keys m) :~ #{:uri :lang :datatype}, each of which
     maps to a (fn[var-value])-> `translated-value`, depending on whether
     `var-value` represents a URI, a literal with a language tag, or a literal
     with a specified datatype. Default is simply to render the 'value' field.
@@ -302,7 +306,7 @@
 (defn update-translators
   "Returns `translator`', for `k`, per `vfn`
   Where
-  - `translators` := m s.t. (keys m) #= `keys`
+  - `translators` := m s.t. (keys m) = `keys`
   - `k` is in `keys`
   - `vfn` := fn [`value`] -> `translated-value`
   - `keys` := #{:uri :lang :datatype :bnode} 
@@ -314,6 +318,15 @@
           }))
 
 (defn make-simplifier
+  "Returns `simplifier-fn` -> for `translators`
+  Where
+  - `simplier-fn` := fn[`var-map`] -> {`var-keyword` `translated-value`, ...}
+  - `translators` := m s.t. (keys m) = `keys`
+  - `k` is in `keys`
+  - `vfn` := fn [`value`] -> `translated-value`
+  - `keys` := #{:uri :lang :datatype :bnode}
+  - `var-keyword` is keyword corresponding to `var`
+  - `translated-value` is `value` from `var-value`, translated using `translators`  "
   [translators]
   (fn [var-map]
     (simplify translators var-map)))
@@ -332,6 +345,8 @@
 
 
 (def simplifier-with-kwis
+  "A simplifier which translates URIs to keyword identifiers (KWIs).
+  See the ont-app.vocabulary.core module"
   (make-simplifier (update-translators default-translators
                                        :uri voc/keyword-for)))
 
