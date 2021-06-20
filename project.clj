@@ -10,11 +10,12 @@
                  ;; logging...
                  [com.taoensso/timbre "5.1.2"]
                  ;; fixes a warning in logging...
-                 [com.fzakaria/slf4j-timbre "0.3.21"]
+                 [com.fzakaria/slf4j-timbre "0.3.21"
+                  :exclusions [[org.slf4j/slf4j-api]]]
                  ;; included per docs in slf4j-timbre...
-                 [org.slf4j/log4j-over-slf4j "1.7.30"]
-                 [org.slf4j/jul-to-slf4j "1.7.30"]
-                 [org.slf4j/jcl-over-slf4j "1.7.30"]
+                 [org.slf4j/log4j-over-slf4j "1.7.31"] ;;"1.7.30"]
+                 [org.slf4j/jul-to-slf4j "1.7.31"]
+                 [org.slf4j/jcl-over-slf4j "1.7.31"]
                  ;; makes light use of jena to parse SPARQL, XSD values, etc...
                  [org.apache.jena/jena-core "3.14.0"] 
                  [org.apache.jena/jena-arq "3.14.0"]

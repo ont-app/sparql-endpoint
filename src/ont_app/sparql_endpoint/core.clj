@@ -379,14 +379,24 @@ Where
           (re-find #"(?i)SELECT" query)
           ]
     }
-     ;; (log/debug query)
-     (-> (sparql-query endpoint
-                       query
-                       (merge http-req
-                              {:accept "application/sparql-results+json"}))
-         (json/read-str)
-         (get "results")
-         (get "bindings"))))
+   ;; (log/debug query)
+   (let [response (sparql-query endpoint
+                                query
+                                (merge http-req
+                                       {:accept "application/sparql-results+json"}))
+         ]
+
+     (try
+       (-> response
+        (json/read-str)
+        (get "results")
+        (get "bindings"))
+       (catch Throwable e
+         (throw (ex-info "Parse error in JSON response to query"
+                         (merge (ex-data e)
+                                {:type ::ParseErrorInJsonResponseToQuery
+                                 ::response response
+                                 }))))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; ASK
