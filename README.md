@@ -284,7 +284,8 @@ method:
 1961
 >
 ```
-<a name="h3-customizing-simplifers"></a>
+
+<a name="h3-customizing-simplifiers"></a>
 ### Customizing simplifiers
 
 Any of these values can be overridden with custom functions by merging
