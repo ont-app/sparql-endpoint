@@ -1,4 +1,4 @@
-#<img src="http://ericdscott.com/NaturalLexiconLogo.png" alt="NaturalLexicon logo" :width=100 height=100/> ont-app/sparql-endpoint
+# <img src="http://ericdscott.com/NaturalLexiconLogo.png" alt="NaturalLexicon logo" :width=100 height=100/> ont-app/sparql-endpoint
 
 The `sparql-endpoint` library provides utilities for interfacing with
 [SPARQL 1.1](https://www.w3.org/TR/sparql11-query/) endpoints in
