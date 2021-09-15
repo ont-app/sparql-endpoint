@@ -1,3 +1,4 @@
+# <img src="http://ericdscott.com/NaturalLexiconLogo.png" alt="NaturalLexicon logo" :width=100 height=100/> ont-app/sparql-endpoint
 
 The `sparql-endpoint` library provides utilities for interfacing with
 [SPARQL 1.1](https://www.w3.org/TR/sparql11-query/) endpoints in
@@ -23,6 +24,7 @@ clojure.
     - [simplifier-for-prolog](#h3-simplifier-for-prologue)
   - [parse-prologue](#h2-parse-prologue)
   - [`xsd-type-uri`](#h2-xsd-type-uri)
+  - [License](#h2-license)
 
 
 <a name="h1-installation"></a>
@@ -282,7 +284,8 @@ method:
 1961
 >
 ```
-<a name="h3-customizing-simplifers"></a>
+
+<a name="h3-customizing-simplifiers"></a>
 ### Customizing simplifiers
 
 Any of these values can be overridden with custom functions by merging
@@ -464,3 +467,22 @@ library that parses them. This works for most of the standard types:
 "http://www.w3.org/2001/XMLSchema#dateTime"
 >
 ```
+
+<a name="h2-license"></a>
+## License
+
+Copyright © 2020-1 Eric D. Scott
+
+Distributed under the Eclipse Public License either version 1.0 or (at
+your option) any later version.
+
+<table>
+<tr>
+<td width=75>
+<img src="http://ericdscott.com/NaturalLexiconLogo.png" alt="Natural Lexicon logo" :width=50 height=50/> </td>
+<td>
+<p>Natural Lexicon logo - Copyright © 2020 Eric D. Scott. Artwork by Athena M. Scott.</p>
+<p>Released under <a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International license</a>. Under the terms of this license, if you display this logo or derivates thereof, you must include an attribution to the original source, with a link to https://github.com/ont-app, or  http://ericdscott.com. </p> 
+</td>
+</tr>
+<table>

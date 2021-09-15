@@ -1,3 +1,4 @@
+
 (defproject ont-app/sparql-endpoint "0.1.3-SNAPSHOT"
   :description "Utilities for interfacing with a sparql endpoint in clojure"
   :url "https://github.com/ont-app/sparql-endpoint/"
