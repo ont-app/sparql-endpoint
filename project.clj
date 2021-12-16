@@ -21,7 +21,7 @@
                  [org.apache.jena/jena-arq "4.3.1"] 
                  [org.apache.jena/jena-iri "4.3.1" ]
                  ;; ... see Appendix below for notes about jena versioning
-                 [ont-app/vocabulary "0.1.5-SNAPSHOT"]
+                 [ont-app/vocabulary "0.1.5"]
                  ]
   :plugins [[lein-codox "0.10.6"]
             ]
