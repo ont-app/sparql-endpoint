@@ -192,6 +192,16 @@ Update succeeded
 > 
 ```
 
+This is how you would load a file into a graph
+
+```
+(endpoint/sparql-update
+   "http://localhost:3032/my-dataset/update"
+   "LOAD <file:test/resources/my-file.ttl>
+    INTO GRAPH <http://my-dataset/myGraph>"
+   )
+```
+
 <a name="h2-simplifiers"></a>
 ## Simplifiers
 
