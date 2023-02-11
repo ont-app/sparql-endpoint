@@ -35,7 +35,7 @@ clojure.
 [![Clojars Project](https://img.shields.io/clojars/v/ont-app/sparql-endpoint.svg)](https://clojars.org/ont-app/sparql-endpoint)
 
 
-Additional documentation is provided at https://cljdoc.org/d/ont-app/sparql-endpoint/0.1.2.
+Additional documentation is provided at https://cljdoc.org/d/ont-app/sparql-endpoint/0.2.0.
 
 Require thus:
 ```
@@ -242,12 +242,12 @@ function:
                Filter (Lang(?enLabel) = \"en\")
              }")
   (map simplify (sparql-select wikidata-endpoint human-query))
-({:enLabel #lstr "human@en"})
+({:enLabel #voc/lstr "human@en"})
 ;; Compare to [{"enLabel" {"xml:lang" "en", "type" "literal", "value" "human"}}]
 >
 ```
 
-The `#lstr` reader macro is defined for literal values with
+The `#voc/lstr` reader macro is defined for literal values with
 `xml:lang` tags. Described in more detail in the next sections.
 
 <a name="h4-optional-translators-argument"></a>
@@ -287,7 +287,7 @@ method:
                } "
        ]
        (-> (sparql-select wikidata-endpoint query)
-           (partial (map simplify))
+           (map simplify)
            (first)
            (:dob)
            (.getYears)))
@@ -333,11 +333,11 @@ It is defined in the supporting library `ont-app.vocabulary.lstr`.
 Examples:
 
 ```clojure
-> (type #lstr "human@en")
+> (type #voc/lstr "human@en")
 ont_app.vocabulary.lstr.LangStr
-> (str #lstr "human@en")
+> (str #voc/lstr "human@en")
 human
-> (ont-app.vocabulary.lstr/lang  #lstr "human@en")
+> (ont-app.vocabulary.lstr/lang  #voc/lstr "human@en")
 "en"
 ```
 
@@ -481,7 +481,7 @@ library that parses them. This works for most of the standard types:
 <a name="h2-license"></a>
 ## License
 
-Copyright © 2020-1 Eric D. Scott
+Copyright © 2020-3 Eric D. Scott
 
 Distributed under the Eclipse Public License either version 1.0 or (at
 your option) any later version.
