@@ -33,6 +33,21 @@ The preferred sequence of events would be:
 - Sketches of the pertinent test(s) (in the issue)
 - The actual PR, which would include finalized versions of the two
   points above.
+  
+## Testing
+
+The `ont-app.sparql-endpoint.core-test/test-updates` test is
+predicated on setting an environment variable
+`ONT_APP_TEST_UPDATE_ENDPOINT`, which should point to a SPARQL
+endpoint with both query and update permissions and end with a slash.
+
+EG:
+
+```
+ONT_APP_TEST_UPDATE_ENDPOINT=http://localhost:3030/test-dataset/ make test-all
+```
+
+The test will be skipped if this variable is not set.
 
 ## Code of conduct
 

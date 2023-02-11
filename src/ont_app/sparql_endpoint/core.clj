@@ -8,7 +8,6 @@
    [org.apache.jena.sparql.core Prologue]
    [org.apache.jena.query QueryFactory Query]
    [org.apache.jena.iri IRI IRIFactory]
-   
    )
   (:require
    [clj-http.client :as http]

@@ -1,11 +1,18 @@
 (ns ont-app.sparql-endpoint.core-test
+  {:vann/preferredNamespacePrefix "sparql-endpoint-test"
+   :vann/preferredNamespaceUri "http://rdf.naturallexicon.org/ont-app/sparql-endpoint/test#"
+   }
   (:require [clojure.test :refer :all]
+            [clojure.repl :refer [apropos]]
+            [clojure.pprint :refer [pprint]]
+            [clojure.reflect :refer [reflect]]
             [taoensso.timbre :as log]
             [ont-app.vocabulary.core :as voc]
             [ont-app.vocabulary.wikidata :as wd]
-            [ont-app.sparql-endpoint.core :as sparql]))
+            [ont-app.sparql-endpoint.core :as sparql]
+            ))
 
-(log/set-level! :warn)
+(log/set-level! :info)
 
 
 (def wikidata-endpoint wd/sparql-endpoint)
@@ -64,7 +71,6 @@
       (is (= (re-find #"Q5" result)
              "Q5")))))
 
-  
 (deftest parse-prolog-test
   (testing "`parse-prolog` should return the base and a pair of
 inverse mapping functions between q-names and uris, for each prefix
@@ -81,9 +87,6 @@ the prolog of the query being parsed
       (is (= (q-to-u  "eg:blah") "http://example.com/blah"))
       (is (= (q-to-u  "blah") "blah"))
       (is (= (u-to-q  "blah") "blah")))))
-
-
-
 
 (deftest simplify-test
   (testing "`simplify` when mapped over the output of `sparql-select` should return simplified maps of the results"
@@ -119,7 +122,7 @@ Where
                  (map sparql/simplify
                       (sparql/sparql-select wikidata-endpoint
                                             (prefix label-query)))))
-           #lstr "human@en"))
+           #voc/lstr "human@en"))
 
       ;; URIs are angle-braced by default...
       (is (some
@@ -163,8 +166,6 @@ Where
                                   human-query)))
                      {:q "wd:Q5"})))))
 
-
-
 (deftest xsd-type-uri-issue-1
   (testing "xsd-type-uri"
     (is (= (sparql/xsd-type-uri 1)
@@ -184,4 +185,80 @@ Where
           (map sparql/simplifier-with-kwis)
           (set))
          {:q :wd/Q5}))))
-  
+
+
+
+(def test-update-endpoint nil)
+
+(deftest test-updates
+  (if-let [endpoint (or test-update-endpoint
+                        (System/getenv "ONT_APP_TEST_UPDATE_ENDPOINT"))
+           ]
+
+    
+    (let [update-endpoint (str endpoint "update")
+          query-endpoint (str endpoint "query")
+          test-graph (voc/uri-for :sparql-endpoint-test/test-graph)
+          insert-query (format "INSERT {GRAPH <%s> {<%s> <%s> <%s>.}} WHERE {}"
+                            test-graph
+                            (voc/uri-for :sparql-endpoint-test/A)
+                            (voc/uri-for :sparql-endpoint-test/B)
+                            (voc/uri-for :sparql-endpoint-test/C))
+          ]
+      (log/info (str "Using update endpoint " update-endpoint))
+      (log/info (str "Using query endpoint " query-endpoint))
+      (let [
+            update-result (sparql/sparql-update update-endpoint insert-query)
+            select-query "
+Prefix : <http://rdf.naturallexicon.org/ont-app/sparql-endpoint/>
+Select *
+where
+{
+  Graph ?g
+  {?s ?p ?o}
+}
+"
+            select-result (map sparql/simplifier-with-kwis
+                               (sparql/sparql-select query-endpoint select-query
+                                                     ))
+            ]
+        (is (= #{{:s :sparql-endpoint-test/A,
+                  :p :sparql-endpoint-test/B,
+                  :o :sparql-endpoint-test/C,
+                  :g :sparql-endpoint-test/test-graph}}
+               
+               (set select-result)))
+        (log/info (format "Dropping graph <%s>" test-graph))
+        (sparql/sparql-update update-endpoint (format "DROP GRAPH <%s>" test-graph))
+        )
+      )
+    ;; else no endpoint
+    (log/warn "Environment variable ONT_APP_TEST_UPDATE_ENDPOINT not specified (skipping update tests).")))
+
+
+(comment
+  (def test-update-endpoint "http://localhost:3030/test-dataset/")
+  (def update-endpoint "http://localhost:3030/test-dataset/update")
+  (def query-endpoint "http://localhost:3030/test-dataset/query")
+  (def test-graph (voc/uri-for :sparql-endpoint-test/test-graph))
+  (sparql/sparql-update update-endpoint "DROP ALL")
+  (def insert-query (format "INSERT {GRAPH <%s> {<%s> <%s> <%s>.}} WHERE {}"
+                            test-graph
+                            (voc/uri-for :sparql-endpoint-test/A)
+                            (voc/uri-for :sparql-endpoint-test/B)
+                            (voc/uri-for :sparql-endpoint-test/C)))
+                            
+  (time (sparql/sparql-update update-endpoint insert-query))
+  (time (sparql/sparql-select query-endpoint "Select * where {Graph ?g {}}"))
+  (def select-query "
+Prefix : <http://rdf.naturallexicon.org/ont-app/sparql-endpoint/>
+Select *
+where
+{
+  Graph ?g
+  {?s ?p ?o}
+}
+")
+  (time (map sparql/simplifier-with-kwis(sparql/sparql-select query-endpoint "Select * where {Graph ?g {?s ?p ?o}}")))
+
+  )
