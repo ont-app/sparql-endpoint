@@ -24,7 +24,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn angle-bracket-uri 
-  "returns < `s`> if it matches the scheme for a URI, else returns `s`."
+  "returns <`s`> if it matches the scheme for a URI, else returns `s`."
   ([s]
    {:pre [(string? s)]
     :post [#(string? %)]
@@ -165,7 +165,7 @@
   (. TypeMapper getInstance))
 
 (defn ^ont_app.vocabulary.lstr.LangStr literal->LangStr 
-  "Returns and instance of `LangStr` for `literal`
+  "Returns an instance of `LangStr` for `literal`
 Where
 - `literal`  is a language-tagged literal returned from a query"
   [literal]
