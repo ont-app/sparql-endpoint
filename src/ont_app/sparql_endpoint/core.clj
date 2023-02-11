@@ -2,22 +2,21 @@
   "Functions to support interacting with a SPARQL endpoint.
   See also `https://www.w3.org/TR/sparql11-query`.
   "
-  (:import 
-   [org.apache.jena.datatypes.xsd XSDDatatype]
-   [org.apache.jena.datatypes TypeMapper]
-   [org.apache.jena.sparql.core Prologue]
-   [org.apache.jena.query QueryFactory Query]
-   [org.apache.jena.iri IRI IRIFactory]
-   
-   )
   (:require
    [clj-http.client :as http]
    [clojure.string :as s]
    [clojure.data.json :as json]
    [taoensso.timbre :as log]
    [ont-app.vocabulary.core :as voc]
-   [ont-app.vocabulary.lstr :refer [->LangStr lang]]
-   ))
+   [ont-app.vocabulary.lstr :refer [->LangStr]]
+   )
+  (:import 
+   [org.apache.jena.datatypes.xsd XSDDatatype]
+   [org.apache.jena.datatypes TypeMapper]
+   [org.apache.jena.sparql.core Prologue]
+   [org.apache.jena.query QueryFactory Query]
+   )
+  )
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -25,7 +24,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn angle-bracket-uri 
-  "returns < `s`> if it matches the scheme for a URI, else returns `s`."
+  "returns <`s`> if it matches the scheme for a URI, else returns `s`."
   ([s]
    {:pre [(string? s)]
     :post [#(string? %)]
@@ -165,12 +164,12 @@
   "Maps datatype names to xsd datatypes"
   (. TypeMapper getInstance))
 
-(defn ^ont_app.vocabulary.lstr.LangStr literal->LangStr 
-  "Returns and instance of `LangStr` for `literal`
+(defn  literal->LangStr 
+  "Returns an instance of `LangStr` for `literal`
 Where
 - `literal`  is a language-tagged literal returned from a query"
-  [literal]
-  (if-let [lang-tag (literal "xml:lang")
+  ^ont_app.vocabulary.lstr.LangStr [literal]
+  (when-let [lang-tag (literal "xml:lang")
            ]
     (->LangStr (literal "value") lang-tag)))
 
@@ -188,7 +187,7 @@ Where
   [literal]
   (with-meta
     (reify Object
-      (toString [x] (get literal "value")))
+      (toString [_x] (get literal "value")))
     (dissoc literal "value")))
 
 (defn parse-xsd-value 
@@ -209,31 +208,32 @@ Where
                              s
                              #"xsd:"
                              "http://www.w3.org/2001/XMLSchema#"))
-        ^XSDDatatype
-        type (.getTypeByName
-              type-mapper
-              (expand-xsd-prefix
-               (get literal "datatype")))
+        
+        type ^XSDDatatype (.getTypeByName
+                           type-mapper
+                           (expand-xsd-prefix
+                            (get literal "datatype")))
         ]
     (if type
       (.parse type (get literal "value"))
       (meta-tagged-literal literal))))
 
 
-(defn ^String xsd-type-uri
+(defn xsd-type-uri
   "Returns xsd URI for (type `x`), or nil if there is no mapping in `type-mapper`.
   Example: [1] -> 'http://www.w3.org/2001/XMLSchema#long'
   Where:
   - `x` is any value.
 "
+  ^String
   ([x]
-   (if-let [mapping (.getTypeByClass
-                     type-mapper
-                     (if (or (inst? x)
-                             (instance? java.util.Calendar x))
-                       org.apache.jena.datatypes.xsd.XSDDateTime
-                       (type x)))
-            ]
+   (when-let [mapping (.getTypeByClass
+                       type-mapper
+                       (if (or (inst? x)
+                               (instance? java.util.Calendar x))
+                         org.apache.jena.datatypes.xsd.XSDDateTime
+                         (type x)))
+              ]
      (-> mapping
          (.getURI)))))
 
@@ -283,16 +283,21 @@ Where
                               (cond
                                 (= (get var-value "type") "uri")
                                 (:uri translators)
+
                                 (and (= (get var-value "type") "literal")
                                      (contains? var-value "xml:lang"))
                                 (:lang translators)
+
                                 (and (= (get var-value "type") "literal")
                                      (contains? var-value "datatype"))
                                 (:datatype translators)
-                                (and (= (get var-value "type") "bnode"))
+
+                                (= (get var-value "type") "bnode")
                                 (:bnode translators)
-                                :default
-                                (fn[b] (get b "value")))]
+
+                              :else
+                              (fn[b] (get b "value")))
+                              ]
                           (translator var-value)))
          
          render-binding (fn [[var var-value]]
@@ -456,7 +461,10 @@ Where
           (string? query)
           (re-find #"(?i)CONSTRUCT" query)
           ]
-    :post [(if (not (string? %)) (let [] (log/warn %) false) true)]
+    :post [(if (not (string? %))
+             (do (log/warn %) false)
+             ;; else return value is a string
+             true)]
     }
    (sparql-query endpoint
                  query
