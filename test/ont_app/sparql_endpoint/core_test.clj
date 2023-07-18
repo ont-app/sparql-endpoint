@@ -237,7 +237,7 @@ where
 
 
 (comment
-  (def test-update-endpoint "http://localhost:3030/test-dataset/")
+  (def test-update-endpoint "http://localhost:3030/endpoint-test/")
   (def update-endpoint "http://localhost:3030/test-dataset/update")
   (def query-endpoint "http://localhost:3030/test-dataset/query")
   (def test-graph (voc/uri-for :sparql-endpoint-test/test-graph))
