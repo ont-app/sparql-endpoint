@@ -1,4 +1,7 @@
 # Change Log
+- 0.2.1
+  - Minor edits
+  - Updating dependencies
 - 0.2.0
   - project.clj -> deps.edn
   - Added tests for update predicated on ONT_APP_TEST_UPDATE_ENDPOINT envar
