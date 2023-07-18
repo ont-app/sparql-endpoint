@@ -19,20 +19,6 @@
   )
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; URI/IRI utilities
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(defn angle-bracket-uri 
-  "returns <`s`> if it matches the scheme for a URI, else returns `s`."
-  ([s]
-   {:pre [(string? s)]
-    :post [#(string? %)]
-    }
-   (if (re-matches #"^(http:|https:|file:).*" s)
-     (str "<" s ">")
-     s)))
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Query parsing
@@ -65,8 +51,7 @@
   (let [unquote (fn [s] (s/replace s #"[<>]" ""))
         q ^Query(. QueryFactory create query)
         p ^Prologue(.getPrologue q)
-        base (.getBaseURI p)
-        ]
+        base (.getBaseURI p)]
     ;; return [<base> <uri to quickname> <quickname to uri>]
     [base
      (fn[u] (let [qname (.shortForm p (unquote u))]
@@ -143,6 +128,10 @@
           (re-find #"(?i)ASK|SELECT|CONSTRUCT" query)
           ]
     }
+   (tap> {:type ::starting-sparql-query
+          ::endpoint endpoint
+          ::query query
+          ::http-req http-req})
    (let [response (http/get endpoint 
                             (merge (merge {:cookie-policy :standard}
                                           http-req)
@@ -156,9 +145,6 @@
                            (:status response)
                            (:reason-phrase response)
                            (:body response))))))))
-
-
-
 
 (def ^TypeMapper type-mapper
   "Maps datatype names to xsd datatypes"
@@ -212,8 +198,7 @@ Where
         type ^XSDDatatype (.getTypeByName
                            type-mapper
                            (expand-xsd-prefix
-                            (get literal "datatype")))
-        ]
+                            (get literal "datatype")))]
     (if type
       (.parse type (get literal "value"))
       (meta-tagged-literal literal))))
@@ -232,8 +217,7 @@ Where
                        (if (or (inst? x)
                                (instance? java.util.Calendar x))
                          org.apache.jena.datatypes.xsd.XSDDateTime
-                         (type x)))
-              ]
+                         (type x)))]
      (-> mapping
          (.getURI)))))
 
@@ -275,8 +259,8 @@ Where
   - Note: see also `https://www.w3.org/TR/sparql11-results-json/`
   "
   ([var-map]
-   (simplify default-translators var-map)
-   )
+   (simplify default-translators var-map))
+
   ([translators var-map]
    (let [render-value (fn[var-value]
                         (let [translator
@@ -302,8 +286,7 @@ Where
          
          render-binding (fn [[var var-value]]
                           [(keyword var)
-                           (render-value var-value)])
-         ]
+                           (render-value var-value)])]
 
      (into {} (map  render-binding var-map)))))
 
@@ -344,6 +327,7 @@ Where
   ([query]
    (simplifier-for-prologue default-translators query)
    )
+
   ([translators query]
    (let [[_ q-namer _] (parse-prologue query)]
      (make-simplifier (update-translators translators :uri q-namer)))))
@@ -388,8 +372,7 @@ Where
    (let [response (sparql-query endpoint
                                 query
                                 (merge http-req
-                                       {:accept "application/sparql-results+json"}))
-         ]
+                                       {:accept "application/sparql-results+json"}))]
 
      (try
        (-> response
@@ -471,5 +454,17 @@ Where
                  (merge {:accept "text/turtle"}
                         http-req))))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; URI/IRI utilities
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(defn angle-bracket-uri
+  "returns <`s`> if it matches the scheme for a URI, else returns `s`."
+  ([s]
+   {:pre [(string? s)]
+    :post [#(string? %)]
+    }
+   (if (re-matches #"^(http:|https:|file:).*" s)
+     (str "<" s ">")
+     s)))
 
